@@ -69,11 +69,14 @@ textarea{resize:none;height:80px;line-height:1.5}
     <h2>Stock Count</h2>
   </div>
   <div class="card">
-    <label>Store</label>
-    <select id="store">
-      <option value="">Select store...</option>
-      <option>Bracknell — The Lexicon</option>
-      <option>Leicester — Highcross</option>
+    <label>Location</label>
+    <select id="location">
+      <option value="">Select location...</option>
+      <option>Watford</option>
+      <option>Guildford</option>
+      <option>Bracknell</option>
+      <option>Gloucester</option>
+      <option>Warehouse</option>
     </select>
 
     <label>Staff name</label>
@@ -169,13 +172,13 @@ document.addEventListener('click', function(e) {
 });
 
 function submitStock() {
-  var store = document.getElementById('store').value;
+  var location = document.getElementById('location').value;
   var staff = document.getElementById('staff').value.trim();
   var product = document.getElementById('product').value.trim();
   var qty = parseInt(document.getElementById('qty').value) || 0;
   var note = document.getElementById('note').value.trim();
 
-  if (!store) { showToast('Please select a store'); return; }
+  if (!location) { showToast('Please select a location'); return; }
   if (!staff) { showToast('Please enter your name'); return; }
   if (!product) { showToast('Please enter a product'); return; }
 
@@ -189,7 +192,9 @@ function submitStock() {
 
   var params = new URLSearchParams({
     action: 'submit',
-    date, time, store, staff, product, qty, note
+    date, time,
+    store: location,
+    staff, product, qty, note
   });
 
   fetch(SCRIPT_URL + '?' + params.toString())
