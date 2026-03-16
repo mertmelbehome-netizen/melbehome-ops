@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Melbehome">
+<link rel="manifest" href="manifest.json">
+<title>Melbehome Ops</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;min-height:100vh}
+.screen{display:none;padding:1rem;max-width:480px;margin:0 auto}
+.screen.active{display:block}
+.header{display:flex;align-items:center;gap:12px;margin-bottom:1.5rem;padding-top:0.5rem}
+.back-btn{background:none;border:none;font-size:22px;cursor:pointer;color:#111;padding:4px}
+.header h2{font-size:18px;font-weight:600;color:#111}
+.home-title{font-size:22px;font-weight:700;color:#111;margin-bottom:4px;padding-top:0.5rem}
+.home-sub{font-size:13px;color:#888;margin-bottom:2rem}
+.module-card{background:#fff;border-radius:12px;padding:1.25rem;margin-bottom:12px;cursor:pointer;border:1px solid #e8e8e8;display:flex;align-items:center;gap:16px}
+.module-card:active{background:#f5f5f5}
+.module-icon{width:44px;height:44px;border-radius:10px;background:#111;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.module-info h3{font-size:16px;font-weight:600;color:#111;margin-bottom:2px}
+.module-info p{font-size:13px;color:#888}
+.card{background:#fff;border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+label{display:block;font-size:12px;color:#888;margin-bottom:5px;margin-top:14px;letter-spacing:0.03em}
+label:first-child{margin-top:0}
+select,input,textarea{width:100%;padding:12px;font-size:16px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa;color:#111;-webkit-appearance:none;appearance:none;font-family:inherit}
+select:focus,input:focus,textarea:focus{outline:none;border-color:#999}
+textarea{resize:none;height:80px;line-height:1.5}
+.autocomplete-wrap{position:relative}
+.suggestions{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #e0e0e0;border-top:none;border-radius:0 0 8px 8px;max-height:220px;overflow-y:auto;z-index:10;display:none}
+.suggestion-item{padding:13px 12px;font-size:15px;color:#111;cursor:pointer;border-bottom:1px solid #f0f0f0}
+.suggestion-item:last-child{border-bottom:none}
+.suggestion-item:active{background:#f5f5f5}
+.qty-wrap{position:relative}
+.qty-wrap input{padding-right:90px;font-size:24px;font-weight:600;height:60px;text-align:center}
+.qty-btns{position:absolute;right:0;top:0;bottom:0;display:flex}
+.qty-btn{width:45px;height:100%;background:transparent;border:none;border-left:1px solid #e0e0e0;font-size:26px;cursor:pointer;color:#111}
+.qty-btn:active{background:#f0f0f0}
+.qty-btn:last-child{border-radius:0 8px 8px 0}
+.submit-btn{width:100%;padding:15px;font-size:17px;font-weight:600;background:#111;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-top:8px}
+.submit-btn:active{opacity:0.85}
+.submit-btn:disabled{opacity:0.5}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:11px 22px;border-radius:999px;font-size:14px;opacity:0;transition:opacity 0.2s;pointer-events:none;white-space:nowrap;z-index:999}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="home" class="screen active">
+  <div style="max-width:480px;margin:0 auto;padding:1rem">
+    <div class="home-title">Melbehome Ops</div>
+    <div class="home-sub">Select a module to continue</div>
+    <div class="module-card" onclick="openModule('stock')">
+      <div class="module-icon">📦</div>
+      <div class="module-info">
+        <h3>Stock Count</h3>
+        <p>Count and log inventory</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="stock" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <h2>Stock Count</h2>
+  </div>
+  <div class="card">
+    <label>Store</label>
+    <select id="store">
+      <option value="">Select store...</option>
+      <option>Bracknell — The Lexicon</option>
+      <option>Leicester — Highcross</option>
+    </select>
+
+    <label>Staff name</label>
+    <input id="staff" type="text" placeholder="Your name" autocomplete="name" />
+
+    <label>Product</label>
+    <div class="autocomplete-wrap">
+      <input id="product" type="text" placeholder="Search product..." autocomplete="off" oninput="filterProducts()" onfocus="filterProducts()" />
+      <div class="suggestions" id="suggestions"></div>
+    </div>
+
+    <label>Counted qty</label>
+    <div class="qty-wrap">
+      <input id="qty" type="number" inputmode="numeric" value="0" min="0" />
+      <div class="qty-btns">
+        <button class="qty-btn" onclick="changeQty(-1)">−</button>
+        <button class="qty-btn" onclick="changeQty(1)">+</button>
+      </div>
+    </div>
+
+    <label>Note</label>
+    <textarea id="note" placeholder="Optional — damaged, low shelf, wrong location..."></textarea>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitStock()">Submit</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyCDXarXuc5b6A-jzBXkoDqwS1Dc78hcFlIiV6OJ7qeeKmLk5TOcS7dpwl4d05yYd0e/exec';
+
+var allProducts = [];
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
+function openModule(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'stock' && allProducts.length === 0) loadProducts();
+}
+
+function goHome() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('home').classList.add('active');
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+function changeQty(d) {
+  var el = document.getElementById('qty');
+  el.value = Math.max(0, (parseInt(el.value) || 0) + d);
+}
+
+function loadProducts() {
+  fetch(SCRIPT_URL + '?action=products')
+    .then(r => r.json())
+    .then(data => { allProducts = data; })
+    .catch(() => {});
+}
+
+function filterProducts() {
+  var val = document.getElementById('product').value.toLowerCase();
+  var box = document.getElementById('suggestions');
+  if (!allProducts.length) { box.style.display = 'none'; return; }
+  var filtered = val
+    ? allProducts.filter(p => p.toLowerCase().indexOf(val) !== -1)
+    : allProducts;
+  if (!filtered.length) { box.style.display = 'none'; return; }
+  box.innerHTML = filtered.slice(0, 40).map(p =>
+    '<div class="suggestion-item" onclick="selectProduct(\'' + p.replace(/'/g, "\\'") + '\')">' + p + '</div>'
+  ).join('');
+  box.style.display = 'block';
+}
+
+function selectProduct(name) {
+  document.getElementById('product').value = name;
+  document.getElementById('suggestions').style.display = 'none';
+  document.getElementById('qty').focus();
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.autocomplete-wrap')) {
+    document.getElementById('suggestions').style.display = 'none';
+  }
+});
+
+function submitStock() {
+  var store = document.getElementById('store').value;
+  var staff = document.getElementById('staff').value.trim();
+  var product = document.getElementById('product').value.trim();
+  var qty = parseInt(document.getElementById('qty').value) || 0;
+  var note = document.getElementById('note').value.trim();
+
+  if (!store) { showToast('Please select a store'); return; }
+  if (!staff) { showToast('Please enter your name'); return; }
+  if (!product) { showToast('Please enter a product'); return; }
+
+  var btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  var now = new Date();
+  var date = now.toLocaleDateString('en-GB');
+  var time = now.toTimeString().slice(0,5);
+
+  var params = new URLSearchParams({
+    action: 'submit',
+    date, time, store, staff, product, qty, note
+  });
+
+  fetch(SCRIPT_URL + '?' + params.toString())
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showToast('Saved!');
+        document.getElementById('product').value = '';
+        document.getElementById('qty').value = '0';
+        document.getElementById('note').value = '';
+      } else {
+        showToast('Error — try again');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Submit';
+    })
+    .catch(() => {
+      showToast('Error — try again');
+      btn.disabled = false;
+      btn.textContent = 'Submit';
+    });
+}
+</script>
+</body>
+</html>
