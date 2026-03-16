@@ -1,0 +1,20 @@
+{
+  "name": "Melbehome Ops",
+  "short_name": "Melbehome",
+  "start_url": "/melbehome-ops/",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192x192/111111/ffffff?text=M",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512/111111/ffffff?text=M",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
