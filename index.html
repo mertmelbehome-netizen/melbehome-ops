@@ -314,7 +314,7 @@ function sendChat() {
   .then(function(data) {
     typing.remove();
     if (data.error) {
-      addChatBubble('Sorry, something went wrong. Please try again.', 'assistant');
+      addChatBubble('Error: ' + data.error, 'assistant');
     } else {
       addChatBubble(data.reply, 'assistant');
       chatHistory.push({ role: 'user', content: msg });
