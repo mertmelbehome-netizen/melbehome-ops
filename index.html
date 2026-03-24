@@ -63,6 +63,18 @@ textarea{resize:none;height:80px;line-height:1.5}
 .chat-welcome p{font-size:13px;line-height:1.6}
 .quick-q{display:inline-block;background:#fff;border:1px solid #e0e0e0;border-radius:20px;padding:8px 14px;font-size:13px;color:#111;cursor:pointer;margin:4px}
 .quick-q:active{background:#f0f0f0}
+
+/* List module (faulty + dn) */
+.list-item{background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
+.list-item .li-info{flex:1}
+.list-item .li-name{font-weight:600;color:#111}
+.list-item .li-detail{font-size:12px;color:#888;margin-top:2px}
+.list-item .li-remove{background:none;border:none;color:#ef4444;font-size:18px;cursor:pointer;padding:4px 8px}
+.list-count{font-size:13px;color:#888;margin-bottom:8px}
+.staff-badge{display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a;font-size:12px;padding:4px 10px;border-radius:999px;margin-bottom:12px}
+.staff-badge.unknown{background:#fef2f2;border-color:#fecaca;color:#dc2626}
+.login-card{background:#fff;border-radius:12px;padding:2rem;text-align:center;margin-bottom:1rem}
+.login-card h3{margin-bottom:12px;font-size:16px}
 </style>
 </head>
 <body>
@@ -76,6 +88,20 @@ textarea{resize:none;height:80px;line-height:1.5}
       <div class="module-info">
         <h3>Stock Count</h3>
         <p>Count and log inventory</p>
+      </div>
+    </div>
+    <div class="module-card" onclick="openModule('faulty')">
+      <div class="module-icon">⚠️</div>
+      <div class="module-info">
+        <h3>Faulty Items</h3>
+        <p>Report broken or damaged products</p>
+      </div>
+    </div>
+    <div class="module-card" onclick="openModule('dn')">
+      <div class="module-icon">🚚</div>
+      <div class="module-info">
+        <h3>Delivery Note</h3>
+        <p>Record stock transfers between stores</p>
       </div>
     </div>
     <div class="module-card" onclick="openModule('chat')">
@@ -129,6 +155,102 @@ textarea{resize:none;height:80px;line-height:1.5}
   </div>
 </div>
 
+<!-- FAULTY ITEMS MODULE -->
+<div id="faulty" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goHome(); faultyList=[];">←</button>
+    <h2>Faulty Items</h2>
+  </div>
+  <div id="faultyLogin" class="login-card">
+    <h3>Enter your email to start</h3>
+    <input id="faultyEmail" type="email" placeholder="Your email..." autocomplete="email" />
+    <button class="submit-btn" style="margin-top:12px" onclick="loginFaulty()">Continue</button>
+  </div>
+  <div id="faultyMain" style="display:none">
+    <div id="faultyStaffBadge" class="staff-badge"></div>
+    <div class="card">
+      <label>Location</label>
+      <select id="faultyStore">
+        <option value="">Select store...</option>
+        <option>Bracknell</option><option>Guildford</option><option>Gloucester</option><option>Watford</option>
+      </select>
+      <label>Product</label>
+      <div class="autocomplete-wrap">
+        <input id="faultyProduct" type="text" placeholder="Search product..." autocomplete="off" oninput="filterFaultyProducts()" onfocus="filterFaultyProducts()" />
+        <div class="suggestions" id="faultySuggestions"></div>
+      </div>
+      <label>Qty</label>
+      <div class="qty-wrap">
+        <input id="faultyQty" type="number" inputmode="numeric" value="1" min="1" />
+        <div class="qty-btns">
+          <button class="qty-btn" onclick="document.getElementById('faultyQty').value=Math.max(1,(parseInt(document.getElementById('faultyQty').value)||1)-1)">−</button>
+          <button class="qty-btn" onclick="document.getElementById('faultyQty').value=(parseInt(document.getElementById('faultyQty').value)||0)+1">+</button>
+        </div>
+      </div>
+      <label>Reason</label>
+      <select id="faultyReason">
+        <option value="">Select reason...</option>
+        <option>Broken</option><option>Damaged</option>
+      </select>
+      <label>Note</label>
+      <textarea id="faultyNote" placeholder="Optional — description of damage..."></textarea>
+      <button class="submit-btn" style="background:#f59e0b" onclick="addFaultyItem()">+ Add to List</button>
+    </div>
+    <div class="list-count" id="faultyCount">0 items in list</div>
+    <div id="faultyListContainer"></div>
+    <button class="submit-btn" id="faultySubmitBtn" onclick="submitFaultyBatch()" style="display:none">Submit All</button>
+  </div>
+</div>
+
+<!-- DN MODULE -->
+<div id="dn" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goHome(); dnList=[];">←</button>
+    <h2>Delivery Note</h2>
+  </div>
+  <div id="dnLogin" class="login-card">
+    <h3>Enter your email to start</h3>
+    <input id="dnEmail" type="email" placeholder="Your email..." autocomplete="email" />
+    <button class="submit-btn" style="margin-top:12px" onclick="loginDn()">Continue</button>
+  </div>
+  <div id="dnMain" style="display:none">
+    <div id="dnStaffBadge" class="staff-badge"></div>
+    <div class="card">
+      <label>From</label>
+      <select id="dnFrom">
+        <option value="">Select origin...</option>
+        <option>Bracknell</option><option>Guildford</option><option>Gloucester</option><option>Watford</option><option>Storage</option>
+      </select>
+      <label>To</label>
+      <select id="dnTo">
+        <option value="">Select destination...</option>
+        <option>Bracknell</option><option>Guildford</option><option>Gloucester</option><option>Watford</option><option>Storage</option>
+      </select>
+      <label>Product</label>
+      <div class="autocomplete-wrap">
+        <input id="dnProduct" type="text" placeholder="Search product..." autocomplete="off" oninput="filterDnProducts()" onfocus="filterDnProducts()" />
+        <div class="suggestions" id="dnSuggestions"></div>
+      </div>
+      <label>Qty</label>
+      <div class="qty-wrap">
+        <input id="dnQty" type="number" inputmode="numeric" value="1" min="1" />
+        <div class="qty-btns">
+          <button class="qty-btn" onclick="document.getElementById('dnQty').value=Math.max(1,(parseInt(document.getElementById('dnQty').value)||1)-1)">−</button>
+          <button class="qty-btn" onclick="document.getElementById('dnQty').value=(parseInt(document.getElementById('dnQty').value)||0)+1">+</button>
+        </div>
+      </div>
+      <label>Box #</label>
+      <input id="dnBox" type="text" placeholder="Box number (e.g. 1, 2...)" inputmode="numeric" />
+      <label>Note</label>
+      <textarea id="dnNote" placeholder="Optional..."></textarea>
+      <button class="submit-btn" style="background:#3b82f6" onclick="addDnItem()">+ Add to List</button>
+    </div>
+    <div class="list-count" id="dnCount">0 items in list</div>
+    <div id="dnListContainer"></div>
+    <button class="submit-btn" id="dnSubmitBtn" onclick="submitDnBatch()" style="display:none">Submit All</button>
+  </div>
+</div>
+
 <div id="chat" class="screen">
   <div class="header">
     <button class="back-btn" onclick="goHome(); chatHistory=[];">←</button>
@@ -168,7 +290,7 @@ if ('serviceWorker' in navigator) {
 function openModule(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if (id === 'stock' && allProducts.length === 0) loadProducts();
+  if ((id === 'stock' || id === 'faulty' || id === 'dn') && allProducts.length === 0) loadProducts();
 }
 
 function goHome() {
@@ -215,11 +337,7 @@ function selectProduct(name) {
   document.getElementById('qty').focus();
 }
 
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.autocomplete-wrap')) {
-    document.getElementById('suggestions').style.display = 'none';
-  }
-});
+/* old click listener removed — replaced by unified one in faulty/dn section */
 
 function submitStock() {
   var location = document.getElementById('location').value;
@@ -267,6 +385,254 @@ function submitStock() {
       btn.textContent = 'Submit';
     });
 }
+
+// --- Shared: load products for faulty/dn ---
+function ensureProducts(cb) {
+  if (allProducts.length) { if (cb) cb(); return; }
+  fetch(SCRIPT_URL + '?action=products')
+    .then(function(r) { return r.json(); })
+    .then(function(data) { allProducts = data; if (cb) cb(); })
+    .catch(function() {});
+}
+
+// --- FAULTY ITEMS ---
+var faultyList = [];
+var faultyStaff = '';
+
+function loginFaulty() {
+  var email = document.getElementById('faultyEmail').value.trim().toLowerCase();
+  if (!email) { showToast('Please enter your email'); return; }
+  fetch(SCRIPT_URL + '?action=staff_lookup&email=' + encodeURIComponent(email))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        faultyStaff = data.name;
+        document.getElementById('faultyStaffBadge').textContent = 'Logged in as: ' + data.name;
+        document.getElementById('faultyStaffBadge').className = 'staff-badge';
+        document.getElementById('faultyLogin').style.display = 'none';
+        document.getElementById('faultyMain').style.display = 'block';
+        ensureProducts();
+      } else {
+        document.getElementById('faultyStaffBadge').textContent = 'Unknown email — contact Mert';
+        document.getElementById('faultyStaffBadge').className = 'staff-badge unknown';
+        showToast('Email not recognised');
+      }
+    })
+    .catch(function() { showToast('Connection error'); });
+}
+
+function filterFaultyProducts() {
+  var val = document.getElementById('faultyProduct').value.toLowerCase();
+  var box = document.getElementById('faultySuggestions');
+  if (!allProducts.length) { box.style.display = 'none'; return; }
+  var filtered = val ? allProducts.filter(function(p) { return p.toLowerCase().indexOf(val) !== -1; }) : allProducts;
+  if (!filtered.length) { box.style.display = 'none'; return; }
+  box.innerHTML = filtered.slice(0, 40).map(function(p) {
+    return '<div class="suggestion-item" onclick="document.getElementById(\'faultyProduct\').value=\'' + p.replace(/'/g, "\\'") + '\';document.getElementById(\'faultySuggestions\').style.display=\'none\'">' + p + '</div>';
+  }).join('');
+  box.style.display = 'block';
+}
+
+function addFaultyItem() {
+  var store = document.getElementById('faultyStore').value;
+  var product = document.getElementById('faultyProduct').value.trim();
+  var qty = parseInt(document.getElementById('faultyQty').value) || 1;
+  var reason = document.getElementById('faultyReason').value;
+  var note = document.getElementById('faultyNote').value.trim();
+
+  if (!store) { showToast('Select a store'); return; }
+  if (!product) { showToast('Select a product'); return; }
+  if (!reason) { showToast('Select a reason'); return; }
+
+  var now = new Date();
+  faultyList.push({
+    date: now.toLocaleDateString('en-GB'),
+    time: now.toTimeString().slice(0,5),
+    store: store,
+    staff: faultyStaff,
+    product: product,
+    qty: qty,
+    reason: reason,
+    note: note
+  });
+
+  document.getElementById('faultyProduct').value = '';
+  document.getElementById('faultyQty').value = '1';
+  document.getElementById('faultyNote').value = '';
+  renderFaultyList();
+  showToast('Added: ' + product);
+}
+
+function removeFaultyItem(idx) {
+  faultyList.splice(idx, 1);
+  renderFaultyList();
+}
+
+function renderFaultyList() {
+  var container = document.getElementById('faultyListContainer');
+  var count = document.getElementById('faultyCount');
+  var btn = document.getElementById('faultySubmitBtn');
+  count.textContent = faultyList.length + ' item(s) in list';
+  btn.style.display = faultyList.length > 0 ? 'block' : 'none';
+  container.innerHTML = faultyList.map(function(item, i) {
+    return '<div class="list-item"><div class="li-info"><div class="li-name">' + item.product + '</div><div class="li-detail">Qty: ' + item.qty + ' | ' + item.reason + (item.note ? ' | ' + item.note : '') + '</div></div><button class="li-remove" onclick="removeFaultyItem(' + i + ')">x</button></div>';
+  }).join('');
+}
+
+function submitFaultyBatch() {
+  if (!faultyList.length) return;
+  var btn = document.getElementById('faultySubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  var params = new URLSearchParams({
+    action: 'faulty_submit',
+    data: JSON.stringify(faultyList)
+  });
+
+  fetch(SCRIPT_URL + '?' + params.toString())
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        showToast('Saved ' + data.count + ' faulty item(s)!');
+        faultyList = [];
+        renderFaultyList();
+      } else {
+        showToast('Error: ' + (data.error || 'try again'));
+      }
+      btn.disabled = false;
+      btn.textContent = 'Submit All';
+    })
+    .catch(function() {
+      showToast('Connection error');
+      btn.disabled = false;
+      btn.textContent = 'Submit All';
+    });
+}
+
+// --- DN CREATION ---
+var dnList = [];
+var dnStaff = '';
+
+function loginDn() {
+  var email = document.getElementById('dnEmail').value.trim().toLowerCase();
+  if (!email) { showToast('Please enter your email'); return; }
+  fetch(SCRIPT_URL + '?action=staff_lookup&email=' + encodeURIComponent(email))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        dnStaff = data.name;
+        document.getElementById('dnStaffBadge').textContent = 'Logged in as: ' + data.name;
+        document.getElementById('dnStaffBadge').className = 'staff-badge';
+        document.getElementById('dnLogin').style.display = 'none';
+        document.getElementById('dnMain').style.display = 'block';
+        ensureProducts();
+      } else {
+        showToast('Email not recognised');
+      }
+    })
+    .catch(function() { showToast('Connection error'); });
+}
+
+function filterDnProducts() {
+  var val = document.getElementById('dnProduct').value.toLowerCase();
+  var box = document.getElementById('dnSuggestions');
+  if (!allProducts.length) { box.style.display = 'none'; return; }
+  var filtered = val ? allProducts.filter(function(p) { return p.toLowerCase().indexOf(val) !== -1; }) : allProducts;
+  if (!filtered.length) { box.style.display = 'none'; return; }
+  box.innerHTML = filtered.slice(0, 40).map(function(p) {
+    return '<div class="suggestion-item" onclick="document.getElementById(\'dnProduct\').value=\'' + p.replace(/'/g, "\\'") + '\';document.getElementById(\'dnSuggestions\').style.display=\'none\'">' + p + '</div>';
+  }).join('');
+  box.style.display = 'block';
+}
+
+function addDnItem() {
+  var from = document.getElementById('dnFrom').value;
+  var to = document.getElementById('dnTo').value;
+  var product = document.getElementById('dnProduct').value.trim();
+  var qty = parseInt(document.getElementById('dnQty').value) || 1;
+  var box = document.getElementById('dnBox').value.trim();
+  var note = document.getElementById('dnNote').value.trim();
+
+  if (!from) { showToast('Select origin'); return; }
+  if (!to) { showToast('Select destination'); return; }
+  if (from === to) { showToast('From and To cannot be the same'); return; }
+  if (!product) { showToast('Select a product'); return; }
+
+  var now = new Date();
+  dnList.push({
+    date: now.toLocaleDateString('en-GB'),
+    time: now.toTimeString().slice(0,5),
+    from: from,
+    to: to,
+    staff: dnStaff,
+    product: product,
+    qty: qty,
+    box: box,
+    note: note
+  });
+
+  document.getElementById('dnProduct').value = '';
+  document.getElementById('dnQty').value = '1';
+  document.getElementById('dnNote').value = '';
+  renderDnList();
+  showToast('Added: ' + product);
+}
+
+function removeDnItem(idx) {
+  dnList.splice(idx, 1);
+  renderDnList();
+}
+
+function renderDnList() {
+  var container = document.getElementById('dnListContainer');
+  var count = document.getElementById('dnCount');
+  var btn = document.getElementById('dnSubmitBtn');
+  count.textContent = dnList.length + ' item(s) in list';
+  btn.style.display = dnList.length > 0 ? 'block' : 'none';
+  container.innerHTML = dnList.map(function(item, i) {
+    return '<div class="list-item"><div class="li-info"><div class="li-name">' + item.product + '</div><div class="li-detail">Qty: ' + item.qty + ' | Box: ' + (item.box || '-') + (item.note ? ' | ' + item.note : '') + '</div></div><button class="li-remove" onclick="removeDnItem(' + i + ')">x</button></div>';
+  }).join('');
+}
+
+function submitDnBatch() {
+  if (!dnList.length) return;
+  var btn = document.getElementById('dnSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  var params = new URLSearchParams({
+    action: 'dn_submit',
+    data: JSON.stringify(dnList)
+  });
+
+  fetch(SCRIPT_URL + '?' + params.toString())
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        showToast('Saved ' + data.count + ' DN item(s)!');
+        dnList = [];
+        renderDnList();
+      } else {
+        showToast('Error: ' + (data.error || 'try again'));
+      }
+      btn.disabled = false;
+      btn.textContent = 'Submit All';
+    })
+    .catch(function() {
+      showToast('Connection error');
+      btn.disabled = false;
+      btn.textContent = 'Submit All';
+    });
+}
+
+// Close suggestions on outside click (all modules)
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.autocomplete-wrap')) {
+    var boxes = document.querySelectorAll('.suggestions');
+    for (var i = 0; i < boxes.length; i++) boxes[i].style.display = 'none';
+  }
+});
 
 // --- Training Assistant Chat ---
 var chatHistory = [];
