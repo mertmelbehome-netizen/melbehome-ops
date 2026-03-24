@@ -79,10 +79,21 @@ textarea{resize:none;height:80px;line-height:1.5}
 </head>
 <body>
 
-<div id="home" class="screen active">
+<div id="pinScreen" class="screen active">
+  <div style="max-width:480px;margin:0 auto;padding:2rem 1rem;text-align:center">
+    <div class="home-title">Melbehome Ops</div>
+    <div class="home-sub">Enter your PIN to continue</div>
+    <div class="card" style="margin-top:1rem">
+      <input id="pinInput" type="password" inputmode="numeric" maxlength="4" placeholder="4-digit PIN" style="text-align:center;font-size:28px;font-weight:700;letter-spacing:12px;height:60px" onkeydown="if(event.key==='Enter')checkPin()" />
+      <button class="submit-btn" style="margin-top:12px" onclick="checkPin()">Enter</button>
+    </div>
+  </div>
+</div>
+
+<div id="home" class="screen">
   <div style="max-width:480px;margin:0 auto;padding:1rem">
     <div class="home-title">Melbehome Ops</div>
-    <div class="home-sub">Select a module to continue</div>
+    <div id="homeGreeting" class="home-sub"></div>
     <div class="module-card" onclick="openModule('stock')">
       <div class="module-icon">📦</div>
       <div class="module-info">
@@ -130,8 +141,7 @@ textarea{resize:none;height:80px;line-height:1.5}
       <option>Warehouse</option>
     </select>
 
-    <label>Staff name</label>
-    <input id="staff" type="text" placeholder="Your name" autocomplete="name" />
+    <input id="staff" type="hidden" />
 
     <label>Product</label>
     <div class="autocomplete-wrap">
@@ -161,12 +171,7 @@ textarea{resize:none;height:80px;line-height:1.5}
     <button class="back-btn" onclick="goHome(); faultyList=[];">←</button>
     <h2>Faulty Items</h2>
   </div>
-  <div id="faultyLogin" class="login-card">
-    <h3>Enter your email to start</h3>
-    <input id="faultyEmail" type="email" placeholder="Your email..." autocomplete="email" />
-    <button class="submit-btn" style="margin-top:12px" onclick="loginFaulty()">Continue</button>
-  </div>
-  <div id="faultyMain" style="display:none">
+  <div id="faultyMain">
     <div id="faultyStaffBadge" class="staff-badge"></div>
     <div class="card">
       <label>Location</label>
@@ -208,12 +213,7 @@ textarea{resize:none;height:80px;line-height:1.5}
     <button class="back-btn" onclick="goHome(); dnList=[];">←</button>
     <h2>Delivery Note</h2>
   </div>
-  <div id="dnLogin" class="login-card">
-    <h3>Enter your email to start</h3>
-    <input id="dnEmail" type="email" placeholder="Your email..." autocomplete="email" />
-    <button class="submit-btn" style="margin-top:12px" onclick="loginDn()">Continue</button>
-  </div>
-  <div id="dnMain" style="display:none">
+  <div id="dnMain">
     <div id="dnStaffBadge" class="staff-badge"></div>
     <div class="card">
       <label>From</label>
@@ -282,15 +282,50 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyCDXarXuc5b6A-jzBXk
 const CHAT_URL = 'https://script.google.com/macros/s/AKfycbz5ANZn7HBzwwEOdUTSt-pGuWVqASKfUb-AmAJ1Ps1ioI512NjPh9jI-n21jsS6IZvr_w/exec';
 
 var allProducts = [];
+var currentStaff = '';
+
+// PIN → Name mapping (client-side, simple)
+var PIN_MAP = {
+  '1001': 'Chryselle',
+  '1002': 'Sachin',
+  '1003': 'Sabina',
+  '1004': 'Nuray',
+  '1005': 'Mendy',
+  '1006': 'Emel',
+  '1007': 'Chloe',
+  '1008': 'Akancha',
+  '9999': 'Mert'
+};
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
+}
+
+function checkPin() {
+  var pin = document.getElementById('pinInput').value.trim();
+  if (PIN_MAP[pin]) {
+    currentStaff = PIN_MAP[pin];
+    document.getElementById('pinScreen').classList.remove('active');
+    document.getElementById('home').classList.add('active');
+    document.getElementById('homeGreeting').textContent = 'Hi ' + currentStaff + ' — select a module';
+    document.getElementById('staff').value = currentStaff;
+  } else {
+    showToast('Wrong PIN');
+    document.getElementById('pinInput').value = '';
+  }
 }
 
 function openModule(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if ((id === 'stock' || id === 'faulty' || id === 'dn') && allProducts.length === 0) loadProducts();
+  // Set staff badges
+  if (id === 'faulty') {
+    document.getElementById('faultyStaffBadge').textContent = 'Logged in as: ' + currentStaff;
+  }
+  if (id === 'dn') {
+    document.getElementById('dnStaffBadge').textContent = 'Logged in as: ' + currentStaff;
+  }
 }
 
 function goHome() {
@@ -397,29 +432,6 @@ function ensureProducts(cb) {
 
 // --- FAULTY ITEMS ---
 var faultyList = [];
-var faultyStaff = '';
-
-function loginFaulty() {
-  var email = document.getElementById('faultyEmail').value.trim().toLowerCase();
-  if (!email) { showToast('Please enter your email'); return; }
-  fetch(SCRIPT_URL + '?action=staff_lookup&email=' + encodeURIComponent(email))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success) {
-        faultyStaff = data.name;
-        document.getElementById('faultyStaffBadge').textContent = 'Logged in as: ' + data.name;
-        document.getElementById('faultyStaffBadge').className = 'staff-badge';
-        document.getElementById('faultyLogin').style.display = 'none';
-        document.getElementById('faultyMain').style.display = 'block';
-        ensureProducts();
-      } else {
-        document.getElementById('faultyStaffBadge').textContent = 'Unknown email — contact Mert';
-        document.getElementById('faultyStaffBadge').className = 'staff-badge unknown';
-        showToast('Email not recognised');
-      }
-    })
-    .catch(function() { showToast('Connection error'); });
-}
 
 function filterFaultyProducts() {
   var val = document.getElementById('faultyProduct').value.toLowerCase();
@@ -449,7 +461,7 @@ function addFaultyItem() {
     date: now.toLocaleDateString('en-GB'),
     time: now.toTimeString().slice(0,5),
     store: store,
-    staff: faultyStaff,
+    staff: currentStaff,
     product: product,
     qty: qty,
     reason: reason,
@@ -512,27 +524,6 @@ function submitFaultyBatch() {
 
 // --- DN CREATION ---
 var dnList = [];
-var dnStaff = '';
-
-function loginDn() {
-  var email = document.getElementById('dnEmail').value.trim().toLowerCase();
-  if (!email) { showToast('Please enter your email'); return; }
-  fetch(SCRIPT_URL + '?action=staff_lookup&email=' + encodeURIComponent(email))
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success) {
-        dnStaff = data.name;
-        document.getElementById('dnStaffBadge').textContent = 'Logged in as: ' + data.name;
-        document.getElementById('dnStaffBadge').className = 'staff-badge';
-        document.getElementById('dnLogin').style.display = 'none';
-        document.getElementById('dnMain').style.display = 'block';
-        ensureProducts();
-      } else {
-        showToast('Email not recognised');
-      }
-    })
-    .catch(function() { showToast('Connection error'); });
-}
 
 function filterDnProducts() {
   var val = document.getElementById('dnProduct').value.toLowerCase();
@@ -565,7 +556,7 @@ function addDnItem() {
     time: now.toTimeString().slice(0,5),
     from: from,
     to: to,
-    staff: dnStaff,
+    staff: currentStaff,
     product: product,
     qty: qty,
     box: box,
