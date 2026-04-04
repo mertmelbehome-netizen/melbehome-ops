@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="Melbehome">
 <link rel="manifest" href="manifest.json">
 <title>Melbehome Ops</title>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;min-height:100vh}
@@ -63,6 +64,38 @@ textarea{resize:none;height:80px;line-height:1.5}
 .chat-welcome p{font-size:13px;line-height:1.6}
 .quick-q{display:inline-block;background:#fff;border:1px solid #e0e0e0;border-radius:20px;padding:8px 14px;font-size:13px;color:#111;cursor:pointer;margin:4px}
 .quick-q:active{background:#f0f0f0}
+
+/* Pattern Catalog */
+.pc-tabs{display:flex;gap:0;margin-bottom:1rem}
+.pc-tab{flex:1;padding:10px;text-align:center;font-size:14px;font-weight:600;cursor:pointer;border:1px solid #e0e0e0;background:#fafafa;color:#888}
+.pc-tab:first-child{border-radius:8px 0 0 8px}
+.pc-tab:last-child{border-radius:0 8px 8px 0}
+.pc-tab.active{background:#111;color:#fff;border-color:#111}
+.pc-view{display:none}
+.pc-view.active{display:block}
+.bead-row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.bead-row select{flex:1;padding:10px;font-size:13px}
+.bead-row .bead-num{font-size:11px;color:#888;min-width:18px;text-align:center}
+.bead-remove{background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;padding:4px}
+.add-bead-btn{width:100%;padding:10px;font-size:14px;font-weight:500;background:#f0fdf4;color:#16a34a;border:1px dashed #bbf7d0;border-radius:8px;cursor:pointer;margin-top:4px}
+.add-bead-btn:active{background:#dcfce7}
+.sku-preview{background:#111;color:#fff;padding:14px;border-radius:8px;font-family:'Courier New',monospace;font-size:18px;font-weight:700;text-align:center;letter-spacing:2px;margin-top:14px}
+.photo-area{margin-top:14px;text-align:center}
+.photo-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 20px;background:#fafafa;border:1px dashed #ccc;border-radius:8px;cursor:pointer;font-size:14px;color:#555}
+.photo-btn:active{background:#f0f0f0}
+.photo-thumb{margin-top:10px;max-width:200px;max-height:200px;border-radius:8px;border:1px solid #e0e0e0}
+.barcode-wrap{text-align:center;margin-top:8px}
+.barcode-wrap canvas{max-width:100%}
+.pc-pattern-item{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:12px;margin-bottom:8px}
+.pc-pattern-item .pc-sku{font-family:'Courier New',monospace;font-size:14px;font-weight:700;color:#111}
+.pc-pattern-item .pc-detail{font-size:12px;color:#888;margin-top:4px}
+.pc-pattern-item .pc-beads{font-size:11px;color:#666;margin-top:4px;line-height:1.5}
+.pc-thumb-small{width:48px;height:48px;border-radius:6px;object-fit:cover;border:1px solid #e8e8e8}
+.pc-item-row{display:flex;gap:10px;align-items:center}
+.pc-item-info{flex:1}
+.print-btn{padding:8px 16px;font-size:13px;font-weight:600;background:#fff;color:#111;border:1px solid #111;border-radius:8px;cursor:pointer;margin-top:6px}
+.print-btn:active{background:#f5f5f5}
+@media print{body *{display:none!important}.print-barcode{display:block!important;text-align:center;margin:0 auto}}
 
 /* List module (faulty + dn) */
 .list-item{background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
@@ -120,6 +153,13 @@ textarea{resize:none;height:80px;line-height:1.5}
       <div class="module-info">
         <h3>Training Assistant</h3>
         <p>Ask about procedures, products & more</p>
+      </div>
+    </div>
+    <div class="module-card" id="patternCatalogCard" style="display:none" onclick="openModule('patternCatalog')">
+      <div class="module-icon">💎</div>
+      <div class="module-info">
+        <h3>Pattern Catalog</h3>
+        <p>Register jewelry pattern variants & barcodes</p>
       </div>
     </div>
   </div>
@@ -275,6 +315,83 @@ textarea{resize:none;height:80px;line-height:1.5}
   </div>
 </div>
 
+<!-- PATTERN CATALOG MODULE -->
+<div id="patternCatalog" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goHome(); pcBatchList=[];">←</button>
+    <h2>Pattern Catalog</h2>
+  </div>
+  <div id="pcStaffBadge" class="staff-badge"></div>
+
+  <div class="pc-tabs">
+    <div class="pc-tab active" onclick="switchPcView('builder')">Builder</div>
+    <div class="pc-tab" onclick="switchPcView('browser')">Browse</div>
+  </div>
+
+  <!-- BUILDER VIEW -->
+  <div id="pcBuilder" class="pc-view active">
+    <div class="card">
+      <label>Ana Grup</label>
+      <select id="pcGroup" onchange="updateSKUPreview()">
+        <option value="TAK">Taki</option>
+      </select>
+
+      <label>Kategori</label>
+      <select id="pcCategory" onchange="updateSKUPreview()">
+        <option value="">Sec...</option>
+        <option value="SB">Stretch Bracelet</option>
+        <option value="CF">Cuff Bracelet</option>
+        <option value="AN">Anklet</option>
+        <option value="NK">Necklace</option>
+        <option value="RG">Ring</option>
+        <option value="ER">Earring</option>
+      </select>
+
+      <label>Bead Dizilimi</label>
+      <div id="pcBeadContainer"></div>
+      <button class="add-bead-btn" onclick="addBeadRow()">+ Bead Ekle</button>
+
+      <div class="sku-preview" id="pcSKUPreview">SKU: ---</div>
+
+      <div class="photo-area">
+        <label class="photo-btn" for="pcPhotoInput">📷 Fotograf Cek / Yukle</label>
+        <input type="file" id="pcPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePatternPhoto(this)" />
+        <div id="pcPhotoPreview"></div>
+      </div>
+
+      <label>Not</label>
+      <textarea id="pcNote" placeholder="Opsiyonel — tedarikci, ozel bilgi..."></textarea>
+
+      <button class="submit-btn" style="background:#8b5cf6" onclick="addPatternToList()">+ Listeye Ekle</button>
+    </div>
+
+    <div class="list-count" id="pcBatchCount">0 desen listede</div>
+    <div id="pcBatchContainer"></div>
+    <button class="submit-btn" id="pcSubmitBtn" onclick="submitPatternBatch()" style="display:none">Tumunu Kaydet</button>
+  </div>
+
+  <!-- BROWSER VIEW -->
+  <div id="pcBrowser" class="pc-view">
+    <div class="card">
+      <label>Ara</label>
+      <input id="pcSearch" type="text" placeholder="SKU, renk, materyal..." oninput="filterPatternList()" />
+      <label>Kategori Filtre</label>
+      <select id="pcFilterCat" onchange="filterPatternList()">
+        <option value="">Tumu</option>
+        <option value="SB">Stretch Bracelet</option>
+        <option value="CF">Cuff Bracelet</option>
+        <option value="AN">Anklet</option>
+        <option value="NK">Necklace</option>
+        <option value="RG">Ring</option>
+        <option value="ER">Earring</option>
+      </select>
+    </div>
+    <div id="pcPatternList" style="margin-top:8px">
+      <div style="text-align:center;color:#888;padding:2rem;font-size:14px">Yukleniyor...</div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -283,6 +400,8 @@ const CHAT_URL = 'https://script.google.com/macros/s/AKfycbz5ANZn7HBzwwEOdUTSt-p
 
 var allProducts = [];
 var currentStaff = '';
+var currentPin = '';
+var PATTERN_ALLOWED_PINS = ['9999', '7654', '1004'];
 
 // PIN → Name mapping (client-side, simple)
 var PIN_MAP = {
@@ -305,10 +424,12 @@ function checkPin() {
   var pin = document.getElementById('pinInput').value.trim();
   if (PIN_MAP[pin]) {
     currentStaff = PIN_MAP[pin];
+    currentPin = pin;
     document.getElementById('pinScreen').classList.remove('active');
     document.getElementById('home').classList.add('active');
     document.getElementById('homeGreeting').textContent = 'Hi ' + currentStaff + ' — select a module';
     document.getElementById('staff').value = currentStaff;
+    document.getElementById('patternCatalogCard').style.display = PATTERN_ALLOWED_PINS.includes(pin) ? 'flex' : 'none';
   } else {
     showToast('Wrong PIN');
     document.getElementById('pinInput').value = '';
@@ -325,6 +446,11 @@ function openModule(id) {
   }
   if (id === 'dn') {
     document.getElementById('dnStaffBadge').textContent = 'Logged in as: ' + currentStaff;
+  }
+  if (id === 'patternCatalog') {
+    document.getElementById('pcStaffBadge').textContent = 'Logged in as: ' + currentStaff;
+    if (pcBeadCount === 0) addBeadRow();
+    if (allPatterns.length === 0) loadPatternList();
   }
 }
 
@@ -687,6 +813,369 @@ function sendChat() {
     input.disabled = false;
     input.focus();
   });
+}
+
+// --- PATTERN CATALOG ---
+var pcBeadCount = 0;
+var pcBatchList = [];
+var pcPhotoData = null;
+var allPatterns = [];
+
+var BEAD_TYPES = [
+  {code:'KR',label:'Kristal'},{code:'BN',label:'Boncuk'},{code:'TS',label:'Tas'},
+  {code:'TP',label:'Top (spacer)'},{code:'CH',label:'Charm'}
+];
+var BEAD_SIZES = ['4mm','5mm','5.5mm','6mm','8mm','10mm','12mm'];
+var BEAD_COLORS = ['Seffaf','Beyaz','Siyah','Turkuaz','Mavi','Kirmizi','Sari','Yesil','Mor','Pembe','Gold','Silver','Multi'];
+
+var CATEGORY_NAMES = {SB:'Stretch Bracelet',CF:'Cuff Bracelet',AN:'Anklet',NK:'Necklace',RG:'Ring',ER:'Earring'};
+var MATERIAL_CODES = {KR:'Kristal',BN:'Boncuk',TS:'Tas',TP:'Top',CH:'Charm',KB:'Kombi'};
+
+function switchPcView(view) {
+  document.querySelectorAll('.pc-tab').forEach(function(t){t.classList.remove('active')});
+  document.querySelectorAll('.pc-view').forEach(function(v){v.classList.remove('active')});
+  if (view === 'builder') {
+    document.getElementById('pcBuilder').classList.add('active');
+    document.querySelectorAll('.pc-tab')[0].classList.add('active');
+  } else {
+    document.getElementById('pcBrowser').classList.add('active');
+    document.querySelectorAll('.pc-tab')[1].classList.add('active');
+    loadPatternList();
+  }
+}
+
+function addBeadRow() {
+  if (pcBeadCount >= 8) { showToast('Max 8 bead'); return; }
+  pcBeadCount++;
+  var container = document.getElementById('pcBeadContainer');
+  var row = document.createElement('div');
+  row.className = 'bead-row';
+  row.id = 'beadRow' + pcBeadCount;
+  var num = pcBeadCount;
+
+  var typeOpts = '<option value="">Tip...</option>' + BEAD_TYPES.map(function(t){return '<option value="'+t.code+'">'+t.label+'</option>'}).join('');
+  var sizeOpts = '<option value="">Boy...</option>' + BEAD_SIZES.map(function(s){return '<option value="'+s+'">'+s+'</option>'}).join('');
+  var colorOpts = '<option value="">Renk...</option>' + BEAD_COLORS.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
+
+  row.innerHTML = '<span class="bead-num">' + num + '</span>' +
+    '<select onchange="updateSKUPreview()">' + typeOpts + '</select>' +
+    '<select onchange="updateSKUPreview()">' + sizeOpts + '</select>' +
+    '<select onchange="updateSKUPreview()">' + colorOpts + '</select>' +
+    '<button class="bead-remove" onclick="removeBeadRow(this)">×</button>';
+  container.appendChild(row);
+  updateSKUPreview();
+}
+
+function removeBeadRow(btn) {
+  btn.parentElement.remove();
+  pcBeadCount--;
+  // renumber
+  var rows = document.querySelectorAll('#pcBeadContainer .bead-row');
+  for (var i = 0; i < rows.length; i++) {
+    rows[i].querySelector('.bead-num').textContent = i + 1;
+  }
+  updateSKUPreview();
+}
+
+function getBeadData() {
+  var beads = [];
+  var rows = document.querySelectorAll('#pcBeadContainer .bead-row');
+  for (var i = 0; i < rows.length; i++) {
+    var selects = rows[i].querySelectorAll('select');
+    var type = selects[0].value;
+    var size = selects[1].value;
+    var color = selects[2].value;
+    if (type && size && color) {
+      beads.push({type:type, size:size, color:color});
+    }
+  }
+  return beads;
+}
+
+function generateSKUPrefix(beads) {
+  var group = document.getElementById('pcGroup').value;
+  var cat = document.getElementById('pcCategory').value;
+  if (!cat || beads.length === 0) return null;
+
+  // Material
+  var types = beads.map(function(b){return b.type});
+  var uniqueTypes = types.filter(function(t,i,a){return a.indexOf(t)===i});
+  var material = uniqueTypes.length === 1 ? uniqueTypes[0] : 'KB';
+
+  // Dominant size
+  var sizeCounts = {};
+  beads.forEach(function(b){
+    sizeCounts[b.size] = (sizeCounts[b.size]||0) + 1;
+  });
+  var domSize = Object.keys(sizeCounts).sort(function(a,b){return sizeCounts[b]-sizeCounts[a]})[0];
+  var sizeCode = domSize.replace('mm','').replace('.','');
+  if (sizeCode.length === 1) sizeCode = '0' + sizeCode;
+
+  // Color profile
+  var uniqueColors = beads.map(function(b){return b.color}).filter(function(c,i,a){return a.indexOf(c)===i});
+  var colorProfile = uniqueColors.length === 1 ? 'TEK' : (uniqueColors.length <= 3 ? 'MLT' : 'GRD');
+
+  return group + '-' + cat + '-' + material + '-' + sizeCode + '-' + colorProfile;
+}
+
+function updateSKUPreview() {
+  var beads = getBeadData();
+  var prefix = generateSKUPrefix(beads);
+  var el = document.getElementById('pcSKUPreview');
+  if (prefix) {
+    el.textContent = prefix + '-???';
+    el.style.opacity = '1';
+  } else {
+    el.textContent = 'SKU: ---';
+    el.style.opacity = '0.5';
+  }
+}
+
+function handlePatternPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      var maxW = 800;
+      var w = img.width, h = img.height;
+      if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      pcPhotoData = canvas.toDataURL('image/jpeg', 0.7);
+      document.getElementById('pcPhotoPreview').innerHTML = '<img class="photo-thumb" src="' + pcPhotoData + '" />';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function getBeadFingerprint(beads) {
+  return beads.map(function(b){return b.type+':'+b.size+':'+b.color}).sort().join('|');
+}
+
+function getBeadSummary(beads) {
+  return beads.map(function(b,i){
+    var typeName = BEAD_TYPES.find(function(t){return t.code===b.type});
+    return (i+1) + '. ' + b.size + ' ' + b.color + ' ' + (typeName ? typeName.label : b.type);
+  }).join(' / ');
+}
+
+function addPatternToList() {
+  var cat = document.getElementById('pcCategory').value;
+  if (!cat) { showToast('Kategori sec'); return; }
+
+  var beads = getBeadData();
+  if (beads.length === 0) { showToast('En az 1 bead tanimla'); return; }
+
+  var prefix = generateSKUPrefix(beads);
+  var note = document.getElementById('pcNote').value.trim();
+  var fingerprint = getBeadFingerprint(beads);
+
+  // Check duplicate in current batch
+  var batchDup = pcBatchList.find(function(p){return p.fingerprint === fingerprint && p.category === cat});
+  if (batchDup) { showToast('Bu desen zaten listede!'); return; }
+
+  // Check duplicate in saved patterns
+  var savedDup = allPatterns.find(function(p){return p.fingerprint === fingerprint && p.category === cat});
+  if (savedDup) {
+    if (!confirm('Bu desen zaten kayitli: ' + savedDup.sku + '\nYine de eklemek istiyor musun?')) return;
+  }
+
+  var now = new Date();
+  var item = {
+    skuPrefix: prefix,
+    group: document.getElementById('pcGroup').value,
+    category: cat,
+    categoryName: CATEGORY_NAMES[cat] || cat,
+    beads: JSON.parse(JSON.stringify(beads)),
+    beadCount: beads.length,
+    fingerprint: fingerprint,
+    photo: pcPhotoData,
+    note: note,
+    staff: currentStaff,
+    date: now.toLocaleDateString('en-GB'),
+    time: now.toTimeString().slice(0,5)
+  };
+
+  pcBatchList.push(item);
+
+  // Reset form
+  document.getElementById('pcCategory').value = '';
+  document.getElementById('pcBeadContainer').innerHTML = '';
+  pcBeadCount = 0;
+  addBeadRow();
+  document.getElementById('pcNote').value = '';
+  pcPhotoData = null;
+  document.getElementById('pcPhotoPreview').innerHTML = '';
+  document.getElementById('pcPhotoInput').value = '';
+  updateSKUPreview();
+  renderPatternBatchList();
+  showToast('Eklendi: ' + item.categoryName);
+}
+
+function removePatternItem(idx) {
+  pcBatchList.splice(idx, 1);
+  renderPatternBatchList();
+}
+
+function renderPatternBatchList() {
+  var container = document.getElementById('pcBatchContainer');
+  var count = document.getElementById('pcBatchCount');
+  var btn = document.getElementById('pcSubmitBtn');
+  count.textContent = pcBatchList.length + ' desen listede';
+  btn.style.display = pcBatchList.length > 0 ? 'block' : 'none';
+  container.innerHTML = pcBatchList.map(function(item, i) {
+    var thumbHtml = item.photo ? '<img class="pc-thumb-small" src="' + item.photo + '" />' : '';
+    return '<div class="pc-pattern-item"><div class="pc-item-row">' +
+      thumbHtml +
+      '<div class="pc-item-info"><div class="pc-sku">' + item.skuPrefix + '-???</div>' +
+      '<div class="pc-detail">' + item.categoryName + ' | ' + item.beadCount + ' bead</div>' +
+      '<div class="pc-beads">' + getBeadSummary(item.beads) + '</div>' +
+      (item.note ? '<div class="pc-detail">' + item.note + '</div>' : '') +
+      '</div>' +
+      '<button class="li-remove" onclick="removePatternItem(' + i + ')">×</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function submitPatternBatch() {
+  if (!pcBatchList.length) return;
+  var btn = document.getElementById('pcSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Kaydediliyor...';
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'pattern_submit', data: pcBatchList })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      showToast(data.count + ' desen kaydedildi!');
+      // Show returned SKUs with barcodes
+      if (data.skus && data.skus.length) {
+        showPatternResults(data.skus);
+      }
+      pcBatchList = [];
+      renderPatternBatchList();
+      loadPatternList();
+    } else {
+      showToast('Hata: ' + (data.error || 'tekrar dene'));
+    }
+    btn.disabled = false;
+    btn.textContent = 'Tumunu Kaydet';
+  })
+  .catch(function() {
+    showToast('Baglanti hatasi');
+    btn.disabled = false;
+    btn.textContent = 'Tumunu Kaydet';
+  });
+}
+
+function showPatternResults(skus) {
+  var html = '<div class="card" style="margin-top:1rem;text-align:center">' +
+    '<h3 style="margin-bottom:12px;font-size:16px">Olusturulan Barkodlar</h3>';
+  skus.forEach(function(sku) {
+    html += '<div style="margin-bottom:16px;padding:12px;border:1px solid #e8e8e8;border-radius:8px">' +
+      '<div style="font-family:monospace;font-weight:700;margin-bottom:8px">' + sku + '</div>' +
+      '<div class="barcode-wrap"><canvas id="bc_' + sku.replace(/-/g,'_') + '"></canvas></div>' +
+      '<button class="print-btn" onclick="printBarcode(\'' + sku + '\')">Yazdir</button>' +
+      '</div>';
+  });
+  html += '</div>';
+
+  var resultsDiv = document.getElementById('pcBatchContainer');
+  resultsDiv.innerHTML = html;
+
+  // Render barcodes after DOM update
+  setTimeout(function() {
+    skus.forEach(function(sku) {
+      var canvasId = 'bc_' + sku.replace(/-/g,'_');
+      var canvas = document.getElementById(canvasId);
+      if (canvas && typeof JsBarcode !== 'undefined') {
+        JsBarcode(canvas, sku, {format:'CODE128', width:2, height:60, fontSize:14, margin:10});
+      }
+    });
+  }, 100);
+}
+
+function printBarcode(sku) {
+  var printWin = window.open('', '_blank', 'width=400,height=300');
+  printWin.document.write('<html><head><title>Barcode</title>' +
+    '<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>' +
+    '</head><body style="text-align:center;margin:20px">' +
+    '<canvas id="printCanvas"></canvas>' +
+    '<script>JsBarcode("#printCanvas","' + sku + '",{format:"CODE128",width:2,height:80,fontSize:16,margin:10});' +
+    'setTimeout(function(){window.print();window.close();},500);<\/script>' +
+    '</body></html>');
+  printWin.document.close();
+}
+
+function loadPatternList() {
+  fetch(SCRIPT_URL + '?action=pattern_list')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (Array.isArray(data)) {
+        allPatterns = data;
+        renderPatternBrowser();
+      }
+    })
+    .catch(function() {
+      document.getElementById('pcPatternList').innerHTML =
+        '<div style="text-align:center;color:#888;padding:2rem;font-size:14px">Yuklenemedi — tekrar dene</div>';
+    });
+}
+
+function filterPatternList() {
+  renderPatternBrowser();
+}
+
+function renderPatternBrowser() {
+  var search = (document.getElementById('pcSearch').value || '').toLowerCase();
+  var catFilter = document.getElementById('pcFilterCat').value;
+  var container = document.getElementById('pcPatternList');
+
+  var filtered = allPatterns.filter(function(p) {
+    if (catFilter && p.category !== catFilter) return false;
+    if (search) {
+      var haystack = (p.sku + ' ' + p.categoryName + ' ' + p.beadSummary + ' ' + (p.note||'')).toLowerCase();
+      return haystack.indexOf(search) !== -1;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#888;padding:2rem;font-size:14px">' +
+      (allPatterns.length === 0 ? 'Henuz kayitli desen yok' : 'Aramayla eslesen yok') + '</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(function(p) {
+    var thumbHtml = p.photoURL ? '<img class="pc-thumb-small" src="' + p.photoURL + '" />' : '';
+    return '<div class="pc-pattern-item"><div class="pc-item-row">' +
+      thumbHtml +
+      '<div class="pc-item-info"><div class="pc-sku">' + p.sku + '</div>' +
+      '<div class="pc-detail">' + p.categoryName + ' | ' + p.beadCount + ' bead | ' + p.createdDate + '</div>' +
+      '<div class="pc-beads">' + (p.beadSummary || '') + '</div>' +
+      '</div></div>' +
+      '<div class="barcode-wrap"><canvas class="browse-bc" data-sku="' + p.sku + '"></canvas></div>' +
+      '<button class="print-btn" onclick="printBarcode(\'' + p.sku + '\')">Yazdir</button>' +
+      '</div>';
+  }).join('');
+
+  // Render barcodes
+  setTimeout(function() {
+    document.querySelectorAll('.browse-bc').forEach(function(canvas) {
+      if (typeof JsBarcode !== 'undefined') {
+        JsBarcode(canvas, canvas.dataset.sku, {format:'CODE128', width:1.5, height:50, fontSize:12, margin:8});
+      }
+    });
+  }, 100);
 }
 </script>
 </body>
