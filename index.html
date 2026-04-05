@@ -351,6 +351,25 @@ textarea{resize:none;height:80px;line-height:1.5}
       <div id="pcBeadContainer"></div>
       <button class="add-bead-btn" onclick="addBeadRow()">+ Bead Ekle</button>
 
+      <label>One Cikan Ozellik</label>
+      <select id="pcFeature" onchange="updateSKUPreview()">
+        <option value="">Sec...</option>
+        <option value="NAZAR">Nazar / Evil Eye motif</option>
+        <option value="CHARM">Charm parcasi</option>
+        <option value="GRADIENT">Gradient / Ombre renk gecisi</option>
+        <option value="STONE">Tek tas / Centerpiece</option>
+        <option value="MIXED">Karisik materyal dokusu</option>
+        <option value="COLORBLK">Renk blok deseni</option>
+        <option value="STACK">Stacking / Katmanli tasarim</option>
+        <option value="METAL">Metalik aksesuar / Accent</option>
+        <option value="NATURAL">Dogal tas / Organik</option>
+        <option value="WOVEN">Orgu / Makrame</option>
+        <option value="TASSEL">Puskul / Sarkik</option>
+        <option value="MINIMAL">Minimal / Sade dizilim</option>
+        <option value="DIGER">Diger</option>
+      </select>
+      <input id="pcFeatureCustom" type="text" placeholder="Ozellik detayi (opsiyonel)..." style="margin-top:6px" />
+
       <div class="sku-preview" id="pcSKUPreview">SKU: ---</div>
 
       <div class="photo-area">
@@ -971,6 +990,10 @@ function addPatternToList() {
   var beads = getBeadData();
   if (beads.length === 0) { showToast('En az 1 bead tanimla'); return; }
 
+  var feature = document.getElementById('pcFeature').value;
+  if (!feature) { showToast('One cikan ozellik sec'); return; }
+  var featureCustom = document.getElementById('pcFeatureCustom').value.trim();
+
   var prefix = generateSKUPrefix(beads);
   var note = document.getElementById('pcNote').value.trim();
   var fingerprint = getBeadFingerprint(beads);
@@ -985,6 +1008,8 @@ function addPatternToList() {
     if (!confirm('Bu desen zaten kayitli: ' + savedDup.sku + '\nYine de eklemek istiyor musun?')) return;
   }
 
+  var FEATURE_NAMES = {NAZAR:'Nazar/Evil Eye',CHARM:'Charm',GRADIENT:'Gradient',STONE:'Tek Tas',MIXED:'Karisik Materyal',COLORBLK:'Renk Blok',STACK:'Stacking',METAL:'Metalik Accent',NATURAL:'Dogal Tas',WOVEN:'Orgu/Makrame',TASSEL:'Puskul',MINIMAL:'Minimal',DIGER:'Diger'};
+
   var now = new Date();
   var item = {
     skuPrefix: prefix,
@@ -993,6 +1018,9 @@ function addPatternToList() {
     categoryName: CATEGORY_NAMES[cat] || cat,
     beads: JSON.parse(JSON.stringify(beads)),
     beadCount: beads.length,
+    feature: feature,
+    featureName: FEATURE_NAMES[feature] || feature,
+    featureCustom: featureCustom,
     fingerprint: fingerprint,
     photo: pcPhotoData,
     note: note,
@@ -1008,6 +1036,8 @@ function addPatternToList() {
   document.getElementById('pcBeadContainer').innerHTML = '';
   pcBeadCount = 0;
   addBeadRow();
+  document.getElementById('pcFeature').value = '';
+  document.getElementById('pcFeatureCustom').value = '';
   document.getElementById('pcNote').value = '';
   pcPhotoData = null;
   document.getElementById('pcPhotoPreview').innerHTML = '';
@@ -1030,10 +1060,11 @@ function renderPatternBatchList() {
   btn.style.display = pcBatchList.length > 0 ? 'block' : 'none';
   container.innerHTML = pcBatchList.map(function(item, i) {
     var thumbHtml = item.photo ? '<img class="pc-thumb-small" src="' + item.photo + '" />' : '';
+    var featureText = item.featureName + (item.featureCustom ? ': ' + item.featureCustom : '');
     return '<div class="pc-pattern-item"><div class="pc-item-row">' +
       thumbHtml +
       '<div class="pc-item-info"><div class="pc-sku">' + item.skuPrefix + '-???</div>' +
-      '<div class="pc-detail">' + item.categoryName + ' | ' + item.beadCount + ' bead</div>' +
+      '<div class="pc-detail">' + item.categoryName + ' | ' + item.beadCount + ' bead | ' + featureText + '</div>' +
       '<div class="pc-beads">' + getBeadSummary(item.beads) + '</div>' +
       (item.note ? '<div class="pc-detail">' + item.note + '</div>' : '') +
       '</div>' +
@@ -1057,9 +1088,8 @@ function submitPatternBatch() {
   .then(function(data) {
     if (data.success) {
       showToast(data.count + ' desen kaydedildi!');
-      // Show returned SKUs with barcodes
-      if (data.skus && data.skus.length) {
-        showPatternResults(data.skus);
+      if (data.results && data.results.length) {
+        showPatternResults(data.results);
       }
       pcBatchList = [];
       renderPatternBatchList();
@@ -1077,14 +1107,15 @@ function submitPatternBatch() {
   });
 }
 
-function showPatternResults(skus) {
+function showPatternResults(results) {
   var html = '<div class="card" style="margin-top:1rem;text-align:center">' +
     '<h3 style="margin-bottom:12px;font-size:16px">Olusturulan Barkodlar</h3>';
-  skus.forEach(function(sku) {
+  results.forEach(function(r) {
     html += '<div style="margin-bottom:16px;padding:12px;border:1px solid #e8e8e8;border-radius:8px">' +
-      '<div style="font-family:monospace;font-weight:700;margin-bottom:8px">' + sku + '</div>' +
-      '<div class="barcode-wrap"><canvas id="bc_' + sku.replace(/-/g,'_') + '"></canvas></div>' +
-      '<button class="print-btn" onclick="printBarcode(\'' + sku + '\')">Yazdir</button>' +
+      '<div style="font-size:12px;color:#888;margin-bottom:4px">SKU: ' + r.sku + '</div>' +
+      '<div style="font-family:monospace;font-weight:700;font-size:18px;margin-bottom:8px">' + r.barcode + '</div>' +
+      '<div class="barcode-wrap"><canvas id="bc_' + r.barcode + '"></canvas></div>' +
+      '<button class="print-btn" onclick="printBarcode(\'' + r.barcode + '\',\'' + r.sku + '\')">Yazdir</button>' +
       '</div>';
   });
   html += '</div>';
@@ -1092,25 +1123,25 @@ function showPatternResults(skus) {
   var resultsDiv = document.getElementById('pcBatchContainer');
   resultsDiv.innerHTML = html;
 
-  // Render barcodes after DOM update
   setTimeout(function() {
-    skus.forEach(function(sku) {
-      var canvasId = 'bc_' + sku.replace(/-/g,'_');
-      var canvas = document.getElementById(canvasId);
+    results.forEach(function(r) {
+      var canvas = document.getElementById('bc_' + r.barcode);
       if (canvas && typeof JsBarcode !== 'undefined') {
-        JsBarcode(canvas, sku, {format:'CODE128', width:2, height:60, fontSize:14, margin:10});
+        JsBarcode(canvas, r.barcode, {format:'CODE128', width:2, height:60, fontSize:14, margin:10});
       }
     });
   }, 100);
 }
 
-function printBarcode(sku) {
+function printBarcode(barcode, sku) {
+  var label = sku ? sku : '';
   var printWin = window.open('', '_blank', 'width=400,height=300');
   printWin.document.write('<html><head><title>Barcode</title>' +
     '<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>' +
     '</head><body style="text-align:center;margin:20px">' +
+    (label ? '<div style="font-size:10px;color:#666;margin-bottom:4px">' + label + '</div>' : '') +
     '<canvas id="printCanvas"></canvas>' +
-    '<script>JsBarcode("#printCanvas","' + sku + '",{format:"CODE128",width:2,height:80,fontSize:16,margin:10});' +
+    '<script>JsBarcode("#printCanvas","' + barcode + '",{format:"CODE128",width:2,height:80,fontSize:16,margin:10});' +
     'setTimeout(function(){window.print();window.close();},500);<\/script>' +
     '</body></html>');
   printWin.document.close();
@@ -1143,7 +1174,7 @@ function renderPatternBrowser() {
   var filtered = allPatterns.filter(function(p) {
     if (catFilter && p.category !== catFilter) return false;
     if (search) {
-      var haystack = (p.sku + ' ' + p.categoryName + ' ' + p.beadSummary + ' ' + (p.note||'')).toLowerCase();
+      var haystack = (p.sku + ' ' + p.categoryName + ' ' + p.beadSummary + ' ' + (p.featureName||'') + ' ' + (p.featureCustom||'') + ' ' + (p.note||'') + ' ' + (p.barcode||'')).toLowerCase();
       return haystack.indexOf(search) !== -1;
     }
     return true;
@@ -1157,14 +1188,16 @@ function renderPatternBrowser() {
 
   container.innerHTML = filtered.map(function(p) {
     var thumbHtml = p.photoURL ? '<img class="pc-thumb-small" src="' + p.photoURL + '" />' : '';
+    var featureText = p.featureName ? ' | ' + p.featureName + (p.featureCustom ? ': ' + p.featureCustom : '') : '';
+    var barcodeNum = p.barcode || p.sku;
     return '<div class="pc-pattern-item"><div class="pc-item-row">' +
       thumbHtml +
       '<div class="pc-item-info"><div class="pc-sku">' + p.sku + '</div>' +
-      '<div class="pc-detail">' + p.categoryName + ' | ' + p.beadCount + ' bead | ' + p.createdDate + '</div>' +
+      '<div class="pc-detail">' + p.categoryName + ' | ' + p.beadCount + ' bead' + featureText + ' | ' + p.createdDate + '</div>' +
       '<div class="pc-beads">' + (p.beadSummary || '') + '</div>' +
       '</div></div>' +
-      '<div class="barcode-wrap"><canvas class="browse-bc" data-sku="' + p.sku + '"></canvas></div>' +
-      '<button class="print-btn" onclick="printBarcode(\'' + p.sku + '\')">Yazdir</button>' +
+      '<div class="barcode-wrap"><canvas class="browse-bc" data-barcode="' + barcodeNum + '"></canvas></div>' +
+      '<button class="print-btn" onclick="printBarcode(\'' + barcodeNum + '\',\'' + p.sku + '\')">Yazdir</button>' +
       '</div>';
   }).join('');
 
@@ -1172,7 +1205,7 @@ function renderPatternBrowser() {
   setTimeout(function() {
     document.querySelectorAll('.browse-bc').forEach(function(canvas) {
       if (typeof JsBarcode !== 'undefined') {
-        JsBarcode(canvas, canvas.dataset.sku, {format:'CODE128', width:1.5, height:50, fontSize:12, margin:8});
+        JsBarcode(canvas, canvas.dataset.barcode, {format:'CODE128', width:1.5, height:50, fontSize:12, margin:8});
       }
     });
   }, 100);
