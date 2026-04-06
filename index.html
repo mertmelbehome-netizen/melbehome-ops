@@ -1091,8 +1091,72 @@ function confirmModel() {
 
   var allBeads = getAllBeadsForSKU();
   var prefix = generateSKUPrefix(allBeads);
+  var newSkuPrefix = prefix + '-' + feature;
 
-  currentModelDef = {
+  // Batch'te veya sheet'te ayni model var mi kontrol et
+  var fixedFP = getStructuralFingerprint(fixedBeads);
+  var existingModel = null;
+
+  // Batch'teki girislere bak
+  for (var i = 0; i < pcBatchList.length; i++) {
+    var p = pcBatchList[i];
+    if (p.category === cat && p.skuPrefix === newSkuPrefix) {
+      var pFixedFP = p.fixedBeads ? getStructuralFingerprint(p.fixedBeads) : '';
+      if (pFixedFP === fixedFP) { existingModel = p; break; }
+    }
+  }
+
+  // Sheet'teki kayitlara bak
+  if (!existingModel) {
+    for (var j = 0; j < allPatterns.length; j++) {
+      var ap = allPatterns[j];
+      if (ap.category === cat && ap.sku && ap.sku.indexOf(newSkuPrefix) === 0) {
+        existingModel = ap;
+        break;
+      }
+    }
+  }
+
+  if (existingModel) {
+    // Ayni model zaten var — direkt Phase 2'ye gec, ayni modelId kullan
+    var modelPhoto = existingModel.photoURL || existingModel.photo || null;
+    var photoHtml = modelPhoto
+      ? '<img class="match-photo" src="' + modelPhoto + '" />'
+      : '';
+
+    var overlay = document.createElement('div');
+    overlay.className = 'match-overlay';
+    overlay.id = 'matchOverlay';
+    overlay.innerHTML = '<div class="match-modal">' +
+      '<h3>Bu Model Zaten Kayitli</h3>' +
+      '<div class="match-sku">' + (existingModel.sku || existingModel.skuPrefix) + '</div>' +
+      photoHtml +
+      '<div class="match-beads">' + getBeadSummary(existingModel.fixedBeads || existingModel.beads || []) + '</div>' +
+      '<div class="match-score">Ayni model — yeni varyant eklemek ister misin?</div>' +
+      '<div class="match-actions">' +
+      '<button class="match-btn variant" onclick="reuseExistingModel()">Evet, varyant ekle</button>' +
+      '<button class="match-btn new-model" onclick="forceNewModel()">Hayir, yeni model olarak olustur</button>' +
+      '<button class="match-btn new-model" onclick="closeMatchModal()">Vazgec</button>' +
+      '</div></div>';
+
+    window._pendingModelDef = {
+      group: document.getElementById('pcGroup').value,
+      category: cat,
+      categoryName: CATEGORY_NAMES[cat] || cat,
+      feature: feature,
+      featureName: FEATURE_NAMES[feature] || feature,
+      featureCustom: document.getElementById('pcFeatureCustom').value.trim(),
+      fixedBeads: fixedBeads,
+      varSlot: varSlot,
+      skuPrefix: newSkuPrefix,
+      existingSkuPrefix: existingModel.skuPrefix || newSkuPrefix
+    };
+    document.body.appendChild(overlay);
+    return;
+  }
+
+  // Yeni model — devam
+  goToPhase2({
     group: document.getElementById('pcGroup').value,
     category: cat,
     categoryName: CATEGORY_NAMES[cat] || cat,
@@ -1101,20 +1165,43 @@ function confirmModel() {
     featureCustom: document.getElementById('pcFeatureCustom').value.trim(),
     fixedBeads: fixedBeads,
     varSlot: varSlot,
-    skuPrefix: prefix + '-' + feature
-  };
+    skuPrefix: newSkuPrefix
+  });
+}
 
-  // Phase 2'ye gec
+function reuseExistingModel() {
+  var def = window._pendingModelDef;
+  closeMatchModal();
+  if (def) {
+    def.skuPrefix = def.existingSkuPrefix;
+    goToPhase2(def);
+  }
+}
+
+function forceNewModel() {
+  var def = window._pendingModelDef;
+  closeMatchModal();
+  if (def) goToPhase2(def);
+}
+
+function closeMatchModal() {
+  var overlay = document.getElementById('matchOverlay');
+  if (overlay) overlay.remove();
+  window._pendingModelDef = null;
+}
+
+function goToPhase2(modelDef) {
+  currentModelDef = modelDef;
+
   document.getElementById('pcPhase1').style.display = 'none';
   document.getElementById('pcPhase2').style.display = 'block';
   document.getElementById('pcModelIdDisplay').textContent = currentModelDef.skuPrefix + '-???';
 
-  var summaryHtml = '<strong>Sabit:</strong> ' + getBeadSummary(fixedBeads) + '<br>';
-  summaryHtml += '<strong>Degisken slot:</strong> ' + (varSlot.type === 'ANY' ? 'Serbest tip' : BEAD_TYPES.find(function(t){return t.code===varSlot.type}).label) + ' / ' + (varSlot.size === 'ANY' ? 'Serbest boy' : varSlot.size);
+  var summaryHtml = '<strong>Sabit:</strong> ' + getBeadSummary(currentModelDef.fixedBeads) + '<br>';
+  summaryHtml += '<strong>Degisken slot:</strong> ' + (currentModelDef.varSlot.type === 'ANY' ? 'Serbest tip' : BEAD_TYPES.find(function(t){return t.code===currentModelDef.varSlot.type}).label) + ' / ' + (currentModelDef.varSlot.size === 'ANY' ? 'Serbest boy' : currentModelDef.varSlot.size);
   document.getElementById('pcModelSummary').innerHTML = summaryHtml;
 
-  // Populate variant dropdowns
-  populateVarDropdowns(varSlot);
+  populateVarDropdowns(currentModelDef.varSlot);
 }
 
 function populateVarDropdowns(varSlot) {
