@@ -113,6 +113,8 @@ textarea{resize:none;height:80px;line-height:1.5}
 .match-btn.new-model{background:#fff;color:#111;border:1px solid #e0e0e0}
 .match-btn.new-model:active{background:#f5f5f5}
 .match-score{text-align:center;font-size:13px;color:#888;margin-bottom:12px}
+.photo-zoom-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.photo-zoom-overlay img{max-width:90vw;max-height:85vh;border-radius:8px}
 .var-slot-locked{opacity:0.6;pointer-events:none}
 .fixed-bead-tag{display:inline-block;background:#e8e8e8;color:#555;font-size:11px;padding:3px 8px;border-radius:4px;margin:2px}
 
@@ -1502,6 +1504,14 @@ function printBarcode(barcode, sku) {
   printWin.document.close();
 }
 
+function zoomPhoto(url) {
+  var overlay = document.createElement('div');
+  overlay.className = 'photo-zoom-overlay';
+  overlay.onclick = function(){overlay.remove()};
+  overlay.innerHTML = '<img src="' + url + '" />';
+  document.body.appendChild(overlay);
+}
+
 function loadPatternList() {
   fetch(SCRIPT_URL + '?action=pattern_list')
     .then(function(r) { return r.json(); })
@@ -1542,7 +1552,8 @@ function renderPatternBrowser() {
   }
 
   container.innerHTML = filtered.map(function(p) {
-    var thumbHtml = p.photoURL ? '<img class="pc-thumb-small" src="' + p.photoURL + '" />' : '';
+    var fullPhotoUrl = p.photoURL ? p.photoURL.replace('sz=w200','sz=w800') : '';
+    var thumbHtml = p.photoURL ? '<img class="pc-thumb-small" src="' + p.photoURL + '" onclick="zoomPhoto(\'' + fullPhotoUrl + '\')" style="cursor:pointer" />' : '';
     var featureText = p.featureName ? ' | ' + p.featureName + (p.featureCustom ? ': ' + p.featureCustom : '') : '';
     var barcodeNum = p.barcode || p.sku;
     return '<div class="pc-pattern-item"><div class="pc-item-row">' +
