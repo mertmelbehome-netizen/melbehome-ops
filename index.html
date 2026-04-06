@@ -113,6 +113,8 @@ textarea{resize:none;height:80px;line-height:1.5}
 .match-btn.new-model{background:#fff;color:#111;border:1px solid #e0e0e0}
 .match-btn.new-model:active{background:#f5f5f5}
 .match-score{text-align:center;font-size:13px;color:#888;margin-bottom:12px}
+.var-slot-locked{opacity:0.6;pointer-events:none}
+.fixed-bead-tag{display:inline-block;background:#e8e8e8;color:#555;font-size:11px;padding:3px 8px;border-radius:4px;margin:2px}
 
 /* List module (faulty + dn) */
 .list-item{background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
@@ -347,58 +349,118 @@ textarea{resize:none;height:80px;line-height:1.5}
 
   <!-- BUILDER VIEW -->
   <div id="pcBuilder" class="pc-view active">
-    <div class="card">
-      <label>Ana Grup</label>
-      <select id="pcGroup" onchange="updateSKUPreview()">
-        <option value="TAK">Taki</option>
-      </select>
 
-      <label>Kategori</label>
-      <select id="pcCategory" onchange="updateSKUPreview()">
-        <option value="">Sec...</option>
-        <option value="SB">Stretch Bracelet</option>
-        <option value="CF">Cuff Bracelet</option>
-        <option value="AN">Anklet</option>
-        <option value="NK">Necklace</option>
-        <option value="RG">Ring</option>
-        <option value="ER">Earring</option>
-      </select>
+    <!-- PHASE 1: Model Tanimlama -->
+    <div id="pcPhase1">
+      <div class="card">
+        <div style="text-align:center;margin-bottom:12px">
+          <span style="background:#111;color:#fff;font-size:11px;padding:4px 10px;border-radius:999px">ADIM 1: Model Tanimla</span>
+        </div>
 
-      <label>Bead Dizilimi</label>
-      <div id="pcBeadContainer"></div>
-      <button class="add-bead-btn" onclick="addBeadRow()">+ Bead Ekle</button>
+        <label>Ana Grup</label>
+        <select id="pcGroup" onchange="updateSKUPreview()">
+          <option value="TAK">Taki</option>
+        </select>
 
-      <label>One Cikan Ozellik</label>
-      <select id="pcFeature" onchange="updateSKUPreview()">
-        <option value="">Sec...</option>
-        <option value="NAZAR">Nazar / Evil Eye motif</option>
-        <option value="CHARM">Charm parcasi</option>
-        <option value="GRADIENT">Gradient / Ombre renk gecisi</option>
-        <option value="STONE">Tek tas / Centerpiece</option>
-        <option value="MIXED">Karisik materyal dokusu</option>
-        <option value="COLORBLK">Renk blok deseni</option>
-        <option value="STACK">Stacking / Katmanli tasarim</option>
-        <option value="METAL">Metalik aksesuar / Accent</option>
-        <option value="NATURAL">Dogal tas / Organik</option>
-        <option value="WOVEN">Orgu / Makrame</option>
-        <option value="TASSEL">Puskul / Sarkik</option>
-        <option value="MINIMAL">Minimal / Sade dizilim</option>
-        <option value="DIGER">Diger</option>
-      </select>
-      <input id="pcFeatureCustom" type="text" placeholder="Ozellik detayi (opsiyonel)..." style="margin-top:6px" />
+        <label>Kategori</label>
+        <select id="pcCategory" onchange="updateSKUPreview()">
+          <option value="">Sec...</option>
+          <option value="SB">Stretch Bracelet</option>
+          <option value="CF">Cuff Bracelet</option>
+          <option value="AN">Anklet</option>
+          <option value="NK">Necklace</option>
+          <option value="RG">Ring</option>
+          <option value="ER">Earring</option>
+        </select>
 
-      <div class="sku-preview" id="pcSKUPreview">SKU: ---</div>
+        <label>One Cikan Ozellik</label>
+        <select id="pcFeature" onchange="updateSKUPreview()">
+          <option value="">Sec...</option>
+          <option value="NAZAR">Nazar / Evil Eye motif</option>
+          <option value="CHARM">Charm parcasi</option>
+          <option value="GRADIENT">Gradient / Ombre renk gecisi</option>
+          <option value="STONE">Tek tas / Centerpiece</option>
+          <option value="MIXED">Karisik materyal dokusu</option>
+          <option value="COLORBLK">Renk blok deseni</option>
+          <option value="STACK">Stacking / Katmanli tasarim</option>
+          <option value="METAL">Metalik aksesuar / Accent</option>
+          <option value="NATURAL">Dogal tas / Organik</option>
+          <option value="WOVEN">Orgu / Makrame</option>
+          <option value="TASSEL">Puskul / Sarkik</option>
+          <option value="MINIMAL">Minimal / Sade dizilim</option>
+          <option value="DIGER">Diger</option>
+        </select>
+        <input id="pcFeatureCustom" type="text" placeholder="Ozellik detayi (opsiyonel)..." style="margin-top:6px" />
 
-      <div class="photo-area">
-        <label class="photo-btn" for="pcPhotoInput">📷 Fotograf Cek / Yukle</label>
-        <input type="file" id="pcPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePatternPhoto(this)" />
-        <div id="pcPhotoPreview"></div>
+        <label style="margin-top:16px;font-weight:600;color:#111;font-size:14px">Sabit Bead'ler</label>
+        <div style="font-size:11px;color:#888;margin-bottom:8px">Her varyantta ayni kalan parcalar (tip + boy + renk)</div>
+        <div id="pcFixedBeadContainer"></div>
+        <button class="add-bead-btn" onclick="addFixedBeadRow()">+ Sabit Bead Ekle</button>
+
+        <label style="margin-top:16px;font-weight:600;color:#8b5cf6;font-size:14px">Degisken Slot</label>
+        <div style="font-size:11px;color:#888;margin-bottom:8px">Varyanttan varyanta degisen parca (sadece tip + boy). Yoksa bos birak.</div>
+        <div id="pcVarSlot">
+          <div class="bead-row" id="varSlotRow" style="border:2px dashed #8b5cf6;border-radius:8px;padding:6px">
+            <span class="bead-num" style="color:#8b5cf6">~</span>
+            <select id="varSlotType" onchange="updateSKUPreview()">
+              <option value="">Tip...</option>
+              <option value="KR">Kristal</option>
+              <option value="BN">Boncuk</option>
+              <option value="TS">Tas</option>
+              <option value="TP">Top (spacer)</option>
+              <option value="CH">Charm</option>
+              <option value="ANY">Serbest (her sey olabilir)</option>
+            </select>
+            <select id="varSlotSize" onchange="updateSKUPreview()">
+              <option value="">Boy...</option>
+              <option value="4mm">4mm</option>
+              <option value="5mm">5mm</option>
+              <option value="5.5mm">5.5mm</option>
+              <option value="6mm">6mm</option>
+              <option value="8mm">8mm</option>
+              <option value="10mm">10mm</option>
+              <option value="12mm">12mm</option>
+              <option value="ANY">Serbest</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sku-preview" id="pcSKUPreview">SKU: ---</div>
+
+        <button class="submit-btn" style="background:#111;margin-top:12px" onclick="confirmModel()">Modeli Onayla → Varyant Girisi</button>
+        <button class="submit-btn" style="background:#16a34a;margin-top:6px" onclick="addSinglePattern()">Tek Desen (varyant yok)</button>
       </div>
+    </div>
 
-      <label>Not</label>
-      <textarea id="pcNote" placeholder="Opsiyonel — tedarikci, ozel bilgi..."></textarea>
+    <!-- PHASE 2: Varyant Girisi -->
+    <div id="pcPhase2" style="display:none">
+      <div class="card" style="background:#f8f5ff;border-color:#8b5cf6">
+        <div style="text-align:center;margin-bottom:8px">
+          <span style="background:#8b5cf6;color:#fff;font-size:11px;padding:4px 10px;border-radius:999px">ADIM 2: Varyant Ekle</span>
+        </div>
+        <div class="match-sku" id="pcModelIdDisplay" style="margin-bottom:8px"></div>
+        <div id="pcModelSummary" style="font-size:12px;color:#666;margin-bottom:12px"></div>
 
-      <button class="submit-btn" style="background:#8b5cf6" onclick="addPatternToList()">+ Listeye Ekle</button>
+        <label style="font-weight:600;color:#8b5cf6">Degisken Bead Detayi</label>
+        <div class="bead-row" style="border:2px solid #8b5cf6;border-radius:8px;padding:6px">
+          <span class="bead-num" style="color:#8b5cf6">~</span>
+          <select id="varType"><option value="">Tip...</option></select>
+          <select id="varSize"><option value="">Boy...</option></select>
+          <select id="varColor"><option value="">Renk...</option></select>
+        </div>
+
+        <div class="photo-area">
+          <label class="photo-btn" for="pcPhotoInput">📷 Fotograf Cek / Yukle</label>
+          <input type="file" id="pcPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handlePatternPhoto(this)" />
+          <div id="pcPhotoPreview"></div>
+        </div>
+
+        <label>Not</label>
+        <textarea id="pcNote" placeholder="Opsiyonel..."></textarea>
+
+        <button class="submit-btn" style="background:#8b5cf6;margin-top:8px" onclick="addVariantToList()">+ Varyant Ekle</button>
+        <button class="submit-btn" style="background:#fff;color:#111;border:1px solid #e0e0e0;margin-top:6px" onclick="finishVariants()">Varyantlar Tamam → Baska Model</button>
+      </div>
     </div>
 
     <div class="list-count" id="pcBatchCount">0 desen listede</div>
@@ -485,7 +547,7 @@ function openModule(id) {
   }
   if (id === 'patternCatalog') {
     document.getElementById('pcStaffBadge').textContent = 'Logged in as: ' + currentStaff;
-    if (pcBeadCount === 0) addBeadRow();
+    if (pcFixedBeadCount === 0) addFixedBeadRow();
     if (allPatterns.length === 0) loadPatternList();
   }
 }
@@ -852,10 +914,11 @@ function sendChat() {
 }
 
 // --- PATTERN CATALOG ---
-var pcBeadCount = 0;
+var pcFixedBeadCount = 0;
 var pcBatchList = [];
 var pcPhotoData = null;
 var allPatterns = [];
+var currentModelDef = null; // Phase 2'de aktif model
 
 var BEAD_TYPES = [
   {code:'KR',label:'Kristal'},{code:'BN',label:'Boncuk'},{code:'TS',label:'Tas'},
@@ -865,7 +928,7 @@ var BEAD_SIZES = ['4mm','5mm','5.5mm','6mm','8mm','10mm','12mm'];
 var BEAD_COLORS = ['Seffaf','Beyaz','Siyah','Turkuaz','Mavi','Kirmizi','Sari','Yesil','Mor','Pembe','Gold','Silver','Multi'];
 
 var CATEGORY_NAMES = {SB:'Stretch Bracelet',CF:'Cuff Bracelet',AN:'Anklet',NK:'Necklace',RG:'Ring',ER:'Earring'};
-var MATERIAL_CODES = {KR:'Kristal',BN:'Boncuk',TS:'Tas',TP:'Top',CH:'Charm',KB:'Kombi'};
+var FEATURE_NAMES = {NAZAR:'Nazar/Evil Eye',CHARM:'Charm',GRADIENT:'Gradient',STONE:'Tek Tas',MIXED:'Karisik Materyal',COLORBLK:'Renk Blok',STACK:'Stacking',METAL:'Metalik Accent',NATURAL:'Dogal Tas',WOVEN:'Orgu/Makrame',TASSEL:'Puskul',MINIMAL:'Minimal',DIGER:'Diger'};
 
 function switchPcView(view) {
   document.querySelectorAll('.pc-tab').forEach(function(t){t.classList.remove('active')});
@@ -880,14 +943,14 @@ function switchPcView(view) {
   }
 }
 
-function addBeadRow() {
-  if (pcBeadCount >= 8) { showToast('Max 8 bead'); return; }
-  pcBeadCount++;
-  var container = document.getElementById('pcBeadContainer');
+// === FIXED BEAD ROWS ===
+function addFixedBeadRow() {
+  if (pcFixedBeadCount >= 8) { showToast('Max 8 bead'); return; }
+  pcFixedBeadCount++;
+  var container = document.getElementById('pcFixedBeadContainer');
   var row = document.createElement('div');
   row.className = 'bead-row';
-  row.id = 'beadRow' + pcBeadCount;
-  var num = pcBeadCount;
+  var num = pcFixedBeadCount;
 
   var typeOpts = '<option value="">Tip...</option>' + BEAD_TYPES.map(function(t){return '<option value="'+t.code+'">'+t.label+'</option>'}).join('');
   var sizeOpts = '<option value="">Boy...</option>' + BEAD_SIZES.map(function(s){return '<option value="'+s+'">'+s+'</option>'}).join('');
@@ -897,34 +960,47 @@ function addBeadRow() {
     '<select onchange="updateSKUPreview()">' + typeOpts + '</select>' +
     '<select onchange="updateSKUPreview()">' + sizeOpts + '</select>' +
     '<select onchange="updateSKUPreview()">' + colorOpts + '</select>' +
-    '<button class="bead-remove" onclick="removeBeadRow(this)">×</button>';
+    '<button class="bead-remove" onclick="removeFixedBeadRow(this)">×</button>';
   container.appendChild(row);
   updateSKUPreview();
 }
 
-function removeBeadRow(btn) {
+function removeFixedBeadRow(btn) {
   btn.parentElement.remove();
-  pcBeadCount--;
-  // renumber
-  var rows = document.querySelectorAll('#pcBeadContainer .bead-row');
+  pcFixedBeadCount--;
+  var rows = document.querySelectorAll('#pcFixedBeadContainer .bead-row');
   for (var i = 0; i < rows.length; i++) {
     rows[i].querySelector('.bead-num').textContent = i + 1;
   }
   updateSKUPreview();
 }
 
-function getBeadData() {
+function getFixedBeads() {
   var beads = [];
-  var rows = document.querySelectorAll('#pcBeadContainer .bead-row');
+  var rows = document.querySelectorAll('#pcFixedBeadContainer .bead-row');
   for (var i = 0; i < rows.length; i++) {
     var selects = rows[i].querySelectorAll('select');
     var type = selects[0].value;
     var size = selects[1].value;
     var color = selects[2].value;
     if (type && size && color) {
-      beads.push({type:type, size:size, color:color});
+      beads.push({type:type, size:size, color:color, fixed:true});
     }
   }
+  return beads;
+}
+
+function getVarSlot() {
+  var type = document.getElementById('varSlotType').value;
+  var size = document.getElementById('varSlotSize').value;
+  if (!type && !size) return null;
+  return {type: type || 'ANY', size: size || 'ANY'};
+}
+
+function getAllBeadsForSKU() {
+  var beads = getFixedBeads();
+  var vs = getVarSlot();
+  if (vs) beads.push({type: vs.type === 'ANY' ? 'KB' : vs.type, size: vs.size === 'ANY' ? '06' : vs.size, color:'VAR'});
   return beads;
 }
 
@@ -933,34 +1009,33 @@ function generateSKUPrefix(beads) {
   var cat = document.getElementById('pcCategory').value;
   if (!cat || beads.length === 0) return null;
 
-  // Material
-  var types = beads.map(function(b){return b.type});
+  var types = beads.map(function(b){return b.type}).filter(function(t){return t!=='ANY'&&t!=='KB'});
   var uniqueTypes = types.filter(function(t,i,a){return a.indexOf(t)===i});
-  var material = uniqueTypes.length === 1 ? uniqueTypes[0] : 'KB';
+  var material = uniqueTypes.length === 0 ? 'KB' : (uniqueTypes.length === 1 ? uniqueTypes[0] : 'KB');
 
-  // Dominant size
   var sizeCounts = {};
   beads.forEach(function(b){
-    sizeCounts[b.size] = (sizeCounts[b.size]||0) + 1;
+    if (b.size && b.size !== 'ANY') sizeCounts[b.size] = (sizeCounts[b.size]||0) + 1;
   });
-  var domSize = Object.keys(sizeCounts).sort(function(a,b){return sizeCounts[b]-sizeCounts[a]})[0];
+  var sizes = Object.keys(sizeCounts);
+  var domSize = sizes.length > 0 ? sizes.sort(function(a,b){return sizeCounts[b]-sizeCounts[a]})[0] : '06';
   var sizeCode = domSize.replace('mm','').replace('.','');
   if (sizeCode.length === 1) sizeCode = '0' + sizeCode;
 
-  // Color profile
-  var uniqueColors = beads.map(function(b){return b.color}).filter(function(c,i,a){return a.indexOf(c)===i});
-  var colorProfile = uniqueColors.length === 1 ? 'TEK' : (uniqueColors.length <= 3 ? 'MLT' : 'GRD');
-
-  return group + '-' + cat + '-' + material + '-' + sizeCode + '-' + colorProfile;
+  return group + '-' + cat + '-' + material + '-' + sizeCode;
 }
 
 function updateSKUPreview() {
-  var beads = getBeadData();
+  var beads = getAllBeadsForSKU();
   var prefix = generateSKUPrefix(beads);
+  var feature = document.getElementById('pcFeature').value;
   var el = document.getElementById('pcSKUPreview');
-  if (prefix) {
-    el.textContent = prefix + '-???';
+  if (prefix && feature) {
+    el.textContent = prefix + '-' + feature + '-???';
     el.style.opacity = '1';
+  } else if (prefix) {
+    el.textContent = prefix + '-???';
+    el.style.opacity = '0.7';
   } else {
     el.textContent = 'SKU: ---';
     el.style.opacity = '0.5';
@@ -978,8 +1053,7 @@ function handlePatternPhoto(input) {
       var maxW = 800;
       var w = img.width, h = img.height;
       if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
-      canvas.width = w;
-      canvas.height = h;
+      canvas.width = w; canvas.height = h;
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       pcPhotoData = canvas.toDataURL('image/jpeg', 0.7);
       document.getElementById('pcPhotoPreview').innerHTML = '<img class="photo-thumb" src="' + pcPhotoData + '" />';
@@ -989,12 +1063,10 @@ function handlePatternPhoto(input) {
   reader.readAsDataURL(file);
 }
 
-// Full fingerprint (tip+boy+renk, sirali) — birebir eslesme kontrolu
 function getBeadFingerprint(beads) {
   return beads.map(function(b){return b.type+':'+b.size+':'+b.color}).sort().join('|');
 }
 
-// Structural fingerprint (tip+boy ONLY, renk haric, sirali) — model eslesme
 function getStructuralFingerprint(beads) {
   return beads.map(function(b){return b.type+':'+b.size}).sort().join('|');
 }
@@ -1006,212 +1078,188 @@ function getBeadSummary(beads) {
   }).join(' / ');
 }
 
-var FEATURE_NAMES = {NAZAR:'Nazar/Evil Eye',CHARM:'Charm',GRADIENT:'Gradient',STONE:'Tek Tas',MIXED:'Karisik Materyal',COLORBLK:'Renk Blok',STACK:'Stacking',METAL:'Metalik Accent',NATURAL:'Dogal Tas',WOVEN:'Orgu/Makrame',TASSEL:'Puskul',MINIMAL:'Minimal',DIGER:'Diger'};
+// === PHASE 1: Model Onayla ===
+function confirmModel() {
+  var cat = document.getElementById('pcCategory').value;
+  if (!cat) { showToast('Kategori sec'); return; }
+  var feature = document.getElementById('pcFeature').value;
+  if (!feature) { showToast('One cikan ozellik sec'); return; }
+  var fixedBeads = getFixedBeads();
+  if (fixedBeads.length === 0) { showToast('En az 1 sabit bead tanimla'); return; }
+  var varSlot = getVarSlot();
+  if (!varSlot) { showToast('Degisken slot tanimla (veya "Tek Desen" kullan)'); return; }
 
-// Model eslesmelerini bul (ayni yapi, farkli renkler)
-function findStructuralMatches(beads, cat) {
-  var structFP = getStructuralFingerprint(beads);
-  var fullFP = getBeadFingerprint(beads);
-  var matches = [];
+  var allBeads = getAllBeadsForSKU();
+  var prefix = generateSKUPrefix(allBeads);
 
-  allPatterns.forEach(function(p) {
-    if (p.category !== cat) return;
-    // Structural match: ayni tip+boy, renk farkli olabilir
-    var pStructFP = getStructuralFingerprint(p.beads || []);
-    if (pStructFP === structFP) {
-      var pFullFP = getBeadFingerprint(p.beads || []);
-      matches.push({
-        pattern: p,
-        isExactDuplicate: pFullFP === fullFP,
-        colorDiffs: getColorDiffs(beads, p.beads || [])
-      });
-    }
-  });
+  currentModelDef = {
+    group: document.getElementById('pcGroup').value,
+    category: cat,
+    categoryName: CATEGORY_NAMES[cat] || cat,
+    feature: feature,
+    featureName: FEATURE_NAMES[feature] || feature,
+    featureCustom: document.getElementById('pcFeatureCustom').value.trim(),
+    fixedBeads: fixedBeads,
+    varSlot: varSlot,
+    skuPrefix: prefix + '-' + feature
+  };
 
-  // Batch'tekileri de kontrol et
-  pcBatchList.forEach(function(p) {
-    if (p.category !== cat) return;
-    var pStructFP = getStructuralFingerprint(p.beads || []);
-    if (pStructFP === structFP) {
-      var pFullFP = getBeadFingerprint(p.beads || []);
-      matches.push({
-        pattern: p,
-        isBatch: true,
-        isExactDuplicate: pFullFP === fullFP,
-        colorDiffs: getColorDiffs(beads, p.beads || [])
-      });
-    }
-  });
+  // Phase 2'ye gec
+  document.getElementById('pcPhase1').style.display = 'none';
+  document.getElementById('pcPhase2').style.display = 'block';
+  document.getElementById('pcModelIdDisplay').textContent = currentModelDef.skuPrefix + '-???';
 
-  return matches;
+  var summaryHtml = '<strong>Sabit:</strong> ' + getBeadSummary(fixedBeads) + '<br>';
+  summaryHtml += '<strong>Degisken slot:</strong> ' + (varSlot.type === 'ANY' ? 'Serbest tip' : BEAD_TYPES.find(function(t){return t.code===varSlot.type}).label) + ' / ' + (varSlot.size === 'ANY' ? 'Serbest boy' : varSlot.size);
+  document.getElementById('pcModelSummary').innerHTML = summaryHtml;
+
+  // Populate variant dropdowns
+  populateVarDropdowns(varSlot);
 }
 
-// Hangi bead'lerin rengi farkli?
-function getColorDiffs(newBeads, existingBeads) {
-  var newSorted = newBeads.slice().sort(function(a,b){return (a.type+a.size).localeCompare(b.type+b.size)});
-  var exSorted = existingBeads.slice().sort(function(a,b){return (a.type+a.size).localeCompare(b.type+b.size)});
-  var diffs = [];
-  for (var i = 0; i < newSorted.length && i < exSorted.length; i++) {
-    if (newSorted[i].color !== exSorted[i].color) {
-      var typeName = BEAD_TYPES.find(function(t){return t.code===newSorted[i].type});
-      diffs.push({
-        type: typeName ? typeName.label : newSorted[i].type,
-        size: newSorted[i].size,
-        oldColor: exSorted[i].color,
-        newColor: newSorted[i].color
-      });
-    }
-  }
-  return diffs;
-}
+function populateVarDropdowns(varSlot) {
+  var typeSelect = document.getElementById('varType');
+  var sizeSelect = document.getElementById('varSize');
+  var colorSelect = document.getElementById('varColor');
 
-function showMatchModal(matches, pendingItem) {
-  var bestMatch = matches[0];
-  var p = bestMatch.pattern;
-
-  var photoHtml = p.photoURL ? '<img class="match-photo" src="' + p.photoURL + '" />' :
-    (p.photo ? '<img class="match-photo" src="' + p.photo + '" />' :
-    '<div style="text-align:center;padding:20px;color:#888;background:#fafafa;border-radius:8px;margin-bottom:10px">Fotograf yok</div>');
-
-  var beadCompareHtml = '';
-  if (bestMatch.colorDiffs.length > 0) {
-    beadCompareHtml = '<div class="match-beads"><strong>Renk farklari:</strong><br>';
-    bestMatch.colorDiffs.forEach(function(d) {
-      beadCompareHtml += d.size + ' ' + d.type + ': <span class="match-same">' + d.oldColor + '</span> → <span class="match-diff">' + d.newColor + '</span><br>';
-    });
-    beadCompareHtml += '</div>';
+  if (varSlot.type === 'ANY') {
+    typeSelect.innerHTML = '<option value="">Tip...</option>' + BEAD_TYPES.map(function(t){return '<option value="'+t.code+'">'+t.label+'</option>'}).join('');
+    typeSelect.disabled = false;
+  } else {
+    var typeName = BEAD_TYPES.find(function(t){return t.code===varSlot.type});
+    typeSelect.innerHTML = '<option value="' + varSlot.type + '">' + (typeName ? typeName.label : varSlot.type) + '</option>';
+    typeSelect.disabled = true;
   }
 
-  var existingBeadHtml = '<div class="match-beads"><strong>Mevcut model:</strong><br>' + getBeadSummary(p.beads || []) + '</div>';
+  if (varSlot.size === 'ANY') {
+    sizeSelect.innerHTML = '<option value="">Boy...</option>' + BEAD_SIZES.map(function(s){return '<option value="'+s+'">'+s+'</option>'}).join('');
+    sizeSelect.disabled = false;
+  } else {
+    sizeSelect.innerHTML = '<option value="' + varSlot.size + '">' + varSlot.size + '</option>';
+    sizeSelect.disabled = true;
+  }
 
-  var skuDisplay = p.sku || p.skuPrefix || '?';
-  var modelId = p.modelId || skuDisplay.replace(/\.[A-Z]{3}$/, '');
-
-  var overlay = document.createElement('div');
-  overlay.className = 'match-overlay';
-  overlay.id = 'matchOverlay';
-  overlay.innerHTML = '<div class="match-modal">' +
-    '<h3>Benzer Model Bulundu</h3>' +
-    '<div class="match-sku">' + skuDisplay + '</div>' +
-    photoHtml +
-    existingBeadHtml +
-    beadCompareHtml +
-    (bestMatch.isExactDuplicate ?
-      '<div class="match-score" style="color:#ef4444;font-weight:600">Birebir ayni desen — zaten kayitli!</div>' :
-      '<div class="match-score">Ayni yapi, farkli renk — bu bir renk varyanti olabilir</div>'
-    ) +
-    '<div class="match-actions">' +
-    (bestMatch.isExactDuplicate ? '' :
-      '<button class="match-btn variant" onclick="confirmAsVariant(\'' + modelId + '\')">Evet, renk varyanti olarak ekle</button>'
-    ) +
-    '<button class="match-btn new-model" onclick="confirmAsNewModel()">Hayir, tamamen farkli model</button>' +
-    '<button class="match-btn new-model" onclick="cancelMatch()">Vazgec</button>' +
-    '</div></div>';
-
-  // Store pending item for later use
-  window._pendingPatternItem = pendingItem;
-  window._matchModelId = modelId;
-  document.body.appendChild(overlay);
+  colorSelect.innerHTML = '<option value="">Renk...</option>' + BEAD_COLORS.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
+  colorSelect.disabled = false;
 }
 
-function confirmAsVariant(modelId) {
-  var item = window._pendingPatternItem;
-  if (!item) return;
-  item.modelId = modelId;
-  item.isVariant = true;
-  pcBatchList.push(item);
-  closeMatchModal();
-  resetPatternForm();
-  renderPatternBatchList();
-  showToast('Varyant eklendi: ' + item.categoryName);
-}
+// === PHASE 2: Varyant Ekle ===
+function addVariantToList() {
+  if (!currentModelDef) return;
 
-function confirmAsNewModel() {
-  var item = window._pendingPatternItem;
-  if (!item) return;
-  item.isVariant = false;
-  pcBatchList.push(item);
-  closeMatchModal();
-  resetPatternForm();
-  renderPatternBatchList();
-  showToast('Yeni model eklendi: ' + item.categoryName);
-}
+  var vType = document.getElementById('varType').value;
+  var vSize = document.getElementById('varSize').value;
+  var vColor = document.getElementById('varColor').value;
+  if (!vType || !vSize || !vColor) { showToast('Degisken bead detayini sec'); return; }
 
-function cancelMatch() {
-  closeMatchModal();
-  window._pendingPatternItem = null;
-}
+  var allBeads = currentModelDef.fixedBeads.concat([{type:vType, size:vSize, color:vColor, fixed:false}]);
+  var fingerprint = getBeadFingerprint(allBeads);
 
-function closeMatchModal() {
-  var overlay = document.getElementById('matchOverlay');
-  if (overlay) overlay.remove();
-  window._pendingPatternItem = null;
-}
+  // Duplicate check
+  var dup = pcBatchList.find(function(p){return p.fingerprint === fingerprint && p.category === currentModelDef.category});
+  if (dup) { showToast('Bu varyant zaten listede!'); return; }
+  var savedDup = allPatterns.find(function(p){return p.fingerprint === fingerprint && p.category === currentModelDef.category});
+  if (savedDup) {
+    if (!confirm('Bu desen zaten kayitli: ' + savedDup.sku + '\nYine de eklemek istiyor musun?')) return;
+  }
 
-function resetPatternForm() {
-  document.getElementById('pcCategory').value = '';
-  document.getElementById('pcBeadContainer').innerHTML = '';
-  pcBeadCount = 0;
-  addBeadRow();
-  document.getElementById('pcFeature').value = '';
-  document.getElementById('pcFeatureCustom').value = '';
+  var now = new Date();
+  pcBatchList.push({
+    skuPrefix: currentModelDef.skuPrefix,
+    group: currentModelDef.group,
+    category: currentModelDef.category,
+    categoryName: currentModelDef.categoryName,
+    feature: currentModelDef.feature,
+    featureName: currentModelDef.featureName,
+    featureCustom: currentModelDef.featureCustom,
+    fixedBeads: currentModelDef.fixedBeads,
+    varBead: {type:vType, size:vSize, color:vColor},
+    beads: allBeads,
+    beadCount: allBeads.length,
+    fingerprint: fingerprint,
+    structFingerprint: getStructuralFingerprint(allBeads),
+    photo: pcPhotoData,
+    note: document.getElementById('pcNote').value.trim(),
+    staff: currentStaff,
+    date: now.toLocaleDateString('en-GB'),
+    time: now.toTimeString().slice(0,5),
+    isVariant: pcBatchList.some(function(p){return p.skuPrefix === currentModelDef.skuPrefix}),
+    modelId: null
+  });
+
+  // Reset variant inputs only
+  document.getElementById('varColor').value = '';
+  if (currentModelDef.varSlot.type === 'ANY') document.getElementById('varType').value = '';
+  if (currentModelDef.varSlot.size === 'ANY') document.getElementById('varSize').value = '';
   document.getElementById('pcNote').value = '';
   pcPhotoData = null;
   document.getElementById('pcPhotoPreview').innerHTML = '';
   document.getElementById('pcPhotoInput').value = '';
-  updateSKUPreview();
+  renderPatternBatchList();
+  showToast('Varyant eklendi!');
 }
 
-function addPatternToList() {
+// === Tek Desen (varyant yok) ===
+function addSinglePattern() {
   var cat = document.getElementById('pcCategory').value;
   if (!cat) { showToast('Kategori sec'); return; }
-
-  var beads = getBeadData();
-  if (beads.length === 0) { showToast('En az 1 bead tanimla'); return; }
-
   var feature = document.getElementById('pcFeature').value;
   if (!feature) { showToast('One cikan ozellik sec'); return; }
-  var featureCustom = document.getElementById('pcFeatureCustom').value.trim();
+  var fixedBeads = getFixedBeads();
+  if (fixedBeads.length === 0) { showToast('En az 1 sabit bead tanimla'); return; }
 
-  var prefix = generateSKUPrefix(beads);
-  var note = document.getElementById('pcNote').value.trim();
-  var fingerprint = getBeadFingerprint(beads);
-  var structFingerprint = getStructuralFingerprint(beads);
+  // Foto al Phase 1'de (tek desen icin foto butonu lazim — Phase 1'de foto yok, hemen Phase 2'ye gecirmeden ekleyelim)
+  var allBeads = getAllBeadsForSKU();
+  var prefix = generateSKUPrefix(fixedBeads);
+  var fingerprint = getBeadFingerprint(fixedBeads);
 
   var now = new Date();
-  var item = {
-    skuPrefix: prefix,
+  pcBatchList.push({
+    skuPrefix: prefix + '-' + feature,
     group: document.getElementById('pcGroup').value,
     category: cat,
     categoryName: CATEGORY_NAMES[cat] || cat,
-    beads: JSON.parse(JSON.stringify(beads)),
-    beadCount: beads.length,
     feature: feature,
     featureName: FEATURE_NAMES[feature] || feature,
-    featureCustom: featureCustom,
+    featureCustom: document.getElementById('pcFeatureCustom').value.trim(),
+    fixedBeads: fixedBeads,
+    varBead: null,
+    beads: fixedBeads,
+    beadCount: fixedBeads.length,
     fingerprint: fingerprint,
-    structFingerprint: structFingerprint,
-    photo: pcPhotoData,
-    note: note,
+    structFingerprint: getStructuralFingerprint(fixedBeads),
+    photo: null,
+    note: '',
     staff: currentStaff,
     date: now.toLocaleDateString('en-GB'),
     time: now.toTimeString().slice(0,5),
     isVariant: false,
     modelId: null
-  };
+  });
 
-  // Structural match kontrolu — ayni tip+boy, farkli renk olabilir
-  var matches = findStructuralMatches(beads, cat);
-  if (matches.length > 0) {
-    showMatchModal(matches, item);
-    return; // Modal karar verecek
-  }
-
-  // Eslesen yok — direkt yeni model
-  pcBatchList.push(item);
-  resetPatternForm();
+  resetPhase1();
   renderPatternBatchList();
-  showToast('Yeni model eklendi: ' + item.categoryName);
+  showToast('Tek desen eklendi: ' + CATEGORY_NAMES[cat]);
+}
+
+function finishVariants() {
+  currentModelDef = null;
+  document.getElementById('pcPhase2').style.display = 'none';
+  document.getElementById('pcPhase1').style.display = 'block';
+  resetPhase1();
+}
+
+function resetPhase1() {
+  document.getElementById('pcCategory').value = '';
+  document.getElementById('pcFeature').value = '';
+  document.getElementById('pcFeatureCustom').value = '';
+  document.getElementById('pcFixedBeadContainer').innerHTML = '';
+  pcFixedBeadCount = 0;
+  addFixedBeadRow();
+  document.getElementById('varSlotType').value = '';
+  document.getElementById('varSlotSize').value = '';
+  pcPhotoData = null;
+  updateSKUPreview();
 }
 
 function removePatternItem(idx) {
@@ -1228,10 +1276,12 @@ function renderPatternBatchList() {
   container.innerHTML = pcBatchList.map(function(item, i) {
     var thumbHtml = item.photo ? '<img class="pc-thumb-small" src="' + item.photo + '" />' : '';
     var featureText = item.featureName + (item.featureCustom ? ': ' + item.featureCustom : '');
-    var variantTag = item.isVariant ? '<span style="background:#8b5cf6;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">VARYANT → ' + item.modelId + '</span>' : '<span style="background:#16a34a;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">YENI MODEL</span>';
+    var varBadge = item.varBead
+      ? '<span style="background:#8b5cf6;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">~' + item.varBead.color + '</span>'
+      : '<span style="background:#16a34a;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">TEK</span>';
     return '<div class="pc-pattern-item"><div class="pc-item-row">' +
       thumbHtml +
-      '<div class="pc-item-info"><div class="pc-sku">' + item.skuPrefix + '-???' + variantTag + '</div>' +
+      '<div class="pc-item-info"><div class="pc-sku">' + item.skuPrefix + '-???' + varBadge + '</div>' +
       '<div class="pc-detail">' + item.categoryName + ' | ' + item.beadCount + ' bead | ' + featureText + '</div>' +
       '<div class="pc-beads">' + getBeadSummary(item.beads) + '</div>' +
       (item.note ? '<div class="pc-detail">' + item.note + '</div>' : '') +
