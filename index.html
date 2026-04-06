@@ -97,6 +97,23 @@ textarea{resize:none;height:80px;line-height:1.5}
 .print-btn:active{background:#f5f5f5}
 @media print{body *{display:none!important}.print-barcode{display:block!important;text-align:center;margin:0 auto}}
 
+/* Match Modal */
+.match-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem}
+.match-modal{background:#fff;border-radius:16px;max-width:420px;width:100%;max-height:85vh;overflow-y:auto;padding:1.25rem}
+.match-modal h3{font-size:16px;font-weight:700;margin-bottom:12px;text-align:center}
+.match-photo{width:100%;max-height:200px;object-fit:contain;border-radius:8px;border:1px solid #e8e8e8;margin-bottom:10px}
+.match-sku{font-family:'Courier New',monospace;font-size:14px;font-weight:700;text-align:center;margin-bottom:8px}
+.match-beads{font-size:12px;color:#666;line-height:1.6;margin-bottom:12px;background:#fafafa;padding:10px;border-radius:8px}
+.match-diff{color:#ef4444;font-weight:600}
+.match-same{color:#16a34a}
+.match-actions{display:flex;flex-direction:column;gap:8px}
+.match-btn{padding:14px;font-size:15px;font-weight:600;border:none;border-radius:8px;cursor:pointer}
+.match-btn.variant{background:#8b5cf6;color:#fff}
+.match-btn.variant:active{opacity:0.85}
+.match-btn.new-model{background:#fff;color:#111;border:1px solid #e0e0e0}
+.match-btn.new-model:active{background:#f5f5f5}
+.match-score{text-align:center;font-size:13px;color:#888;margin-bottom:12px}
+
 /* List module (faulty + dn) */
 .list-item{background:#fff;border:1px solid #e8e8e8;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
 .list-item .li-info{flex:1}
@@ -972,8 +989,14 @@ function handlePatternPhoto(input) {
   reader.readAsDataURL(file);
 }
 
+// Full fingerprint (tip+boy+renk, sirali) — birebir eslesme kontrolu
 function getBeadFingerprint(beads) {
   return beads.map(function(b){return b.type+':'+b.size+':'+b.color}).sort().join('|');
+}
+
+// Structural fingerprint (tip+boy ONLY, renk haric, sirali) — model eslesme
+function getStructuralFingerprint(beads) {
+  return beads.map(function(b){return b.type+':'+b.size}).sort().join('|');
 }
 
 function getBeadSummary(beads) {
@@ -981,6 +1004,162 @@ function getBeadSummary(beads) {
     var typeName = BEAD_TYPES.find(function(t){return t.code===b.type});
     return (i+1) + '. ' + b.size + ' ' + b.color + ' ' + (typeName ? typeName.label : b.type);
   }).join(' / ');
+}
+
+var FEATURE_NAMES = {NAZAR:'Nazar/Evil Eye',CHARM:'Charm',GRADIENT:'Gradient',STONE:'Tek Tas',MIXED:'Karisik Materyal',COLORBLK:'Renk Blok',STACK:'Stacking',METAL:'Metalik Accent',NATURAL:'Dogal Tas',WOVEN:'Orgu/Makrame',TASSEL:'Puskul',MINIMAL:'Minimal',DIGER:'Diger'};
+
+// Model eslesmelerini bul (ayni yapi, farkli renkler)
+function findStructuralMatches(beads, cat) {
+  var structFP = getStructuralFingerprint(beads);
+  var fullFP = getBeadFingerprint(beads);
+  var matches = [];
+
+  allPatterns.forEach(function(p) {
+    if (p.category !== cat) return;
+    // Structural match: ayni tip+boy, renk farkli olabilir
+    var pStructFP = getStructuralFingerprint(p.beads || []);
+    if (pStructFP === structFP) {
+      var pFullFP = getBeadFingerprint(p.beads || []);
+      matches.push({
+        pattern: p,
+        isExactDuplicate: pFullFP === fullFP,
+        colorDiffs: getColorDiffs(beads, p.beads || [])
+      });
+    }
+  });
+
+  // Batch'tekileri de kontrol et
+  pcBatchList.forEach(function(p) {
+    if (p.category !== cat) return;
+    var pStructFP = getStructuralFingerprint(p.beads || []);
+    if (pStructFP === structFP) {
+      var pFullFP = getBeadFingerprint(p.beads || []);
+      matches.push({
+        pattern: p,
+        isBatch: true,
+        isExactDuplicate: pFullFP === fullFP,
+        colorDiffs: getColorDiffs(beads, p.beads || [])
+      });
+    }
+  });
+
+  return matches;
+}
+
+// Hangi bead'lerin rengi farkli?
+function getColorDiffs(newBeads, existingBeads) {
+  var newSorted = newBeads.slice().sort(function(a,b){return (a.type+a.size).localeCompare(b.type+b.size)});
+  var exSorted = existingBeads.slice().sort(function(a,b){return (a.type+a.size).localeCompare(b.type+b.size)});
+  var diffs = [];
+  for (var i = 0; i < newSorted.length && i < exSorted.length; i++) {
+    if (newSorted[i].color !== exSorted[i].color) {
+      var typeName = BEAD_TYPES.find(function(t){return t.code===newSorted[i].type});
+      diffs.push({
+        type: typeName ? typeName.label : newSorted[i].type,
+        size: newSorted[i].size,
+        oldColor: exSorted[i].color,
+        newColor: newSorted[i].color
+      });
+    }
+  }
+  return diffs;
+}
+
+function showMatchModal(matches, pendingItem) {
+  var bestMatch = matches[0];
+  var p = bestMatch.pattern;
+
+  var photoHtml = p.photoURL ? '<img class="match-photo" src="' + p.photoURL + '" />' :
+    (p.photo ? '<img class="match-photo" src="' + p.photo + '" />' :
+    '<div style="text-align:center;padding:20px;color:#888;background:#fafafa;border-radius:8px;margin-bottom:10px">Fotograf yok</div>');
+
+  var beadCompareHtml = '';
+  if (bestMatch.colorDiffs.length > 0) {
+    beadCompareHtml = '<div class="match-beads"><strong>Renk farklari:</strong><br>';
+    bestMatch.colorDiffs.forEach(function(d) {
+      beadCompareHtml += d.size + ' ' + d.type + ': <span class="match-same">' + d.oldColor + '</span> → <span class="match-diff">' + d.newColor + '</span><br>';
+    });
+    beadCompareHtml += '</div>';
+  }
+
+  var existingBeadHtml = '<div class="match-beads"><strong>Mevcut model:</strong><br>' + getBeadSummary(p.beads || []) + '</div>';
+
+  var skuDisplay = p.sku || p.skuPrefix || '?';
+  var modelId = p.modelId || skuDisplay.replace(/\.[A-Z]{3}$/, '');
+
+  var overlay = document.createElement('div');
+  overlay.className = 'match-overlay';
+  overlay.id = 'matchOverlay';
+  overlay.innerHTML = '<div class="match-modal">' +
+    '<h3>Benzer Model Bulundu</h3>' +
+    '<div class="match-sku">' + skuDisplay + '</div>' +
+    photoHtml +
+    existingBeadHtml +
+    beadCompareHtml +
+    (bestMatch.isExactDuplicate ?
+      '<div class="match-score" style="color:#ef4444;font-weight:600">Birebir ayni desen — zaten kayitli!</div>' :
+      '<div class="match-score">Ayni yapi, farkli renk — bu bir renk varyanti olabilir</div>'
+    ) +
+    '<div class="match-actions">' +
+    (bestMatch.isExactDuplicate ? '' :
+      '<button class="match-btn variant" onclick="confirmAsVariant(\'' + modelId + '\')">Evet, renk varyanti olarak ekle</button>'
+    ) +
+    '<button class="match-btn new-model" onclick="confirmAsNewModel()">Hayir, tamamen farkli model</button>' +
+    '<button class="match-btn new-model" onclick="cancelMatch()">Vazgec</button>' +
+    '</div></div>';
+
+  // Store pending item for later use
+  window._pendingPatternItem = pendingItem;
+  window._matchModelId = modelId;
+  document.body.appendChild(overlay);
+}
+
+function confirmAsVariant(modelId) {
+  var item = window._pendingPatternItem;
+  if (!item) return;
+  item.modelId = modelId;
+  item.isVariant = true;
+  pcBatchList.push(item);
+  closeMatchModal();
+  resetPatternForm();
+  renderPatternBatchList();
+  showToast('Varyant eklendi: ' + item.categoryName);
+}
+
+function confirmAsNewModel() {
+  var item = window._pendingPatternItem;
+  if (!item) return;
+  item.isVariant = false;
+  pcBatchList.push(item);
+  closeMatchModal();
+  resetPatternForm();
+  renderPatternBatchList();
+  showToast('Yeni model eklendi: ' + item.categoryName);
+}
+
+function cancelMatch() {
+  closeMatchModal();
+  window._pendingPatternItem = null;
+}
+
+function closeMatchModal() {
+  var overlay = document.getElementById('matchOverlay');
+  if (overlay) overlay.remove();
+  window._pendingPatternItem = null;
+}
+
+function resetPatternForm() {
+  document.getElementById('pcCategory').value = '';
+  document.getElementById('pcBeadContainer').innerHTML = '';
+  pcBeadCount = 0;
+  addBeadRow();
+  document.getElementById('pcFeature').value = '';
+  document.getElementById('pcFeatureCustom').value = '';
+  document.getElementById('pcNote').value = '';
+  pcPhotoData = null;
+  document.getElementById('pcPhotoPreview').innerHTML = '';
+  document.getElementById('pcPhotoInput').value = '';
+  updateSKUPreview();
 }
 
 function addPatternToList() {
@@ -997,18 +1176,7 @@ function addPatternToList() {
   var prefix = generateSKUPrefix(beads);
   var note = document.getElementById('pcNote').value.trim();
   var fingerprint = getBeadFingerprint(beads);
-
-  // Check duplicate in current batch
-  var batchDup = pcBatchList.find(function(p){return p.fingerprint === fingerprint && p.category === cat});
-  if (batchDup) { showToast('Bu desen zaten listede!'); return; }
-
-  // Check duplicate in saved patterns
-  var savedDup = allPatterns.find(function(p){return p.fingerprint === fingerprint && p.category === cat});
-  if (savedDup) {
-    if (!confirm('Bu desen zaten kayitli: ' + savedDup.sku + '\nYine de eklemek istiyor musun?')) return;
-  }
-
-  var FEATURE_NAMES = {NAZAR:'Nazar/Evil Eye',CHARM:'Charm',GRADIENT:'Gradient',STONE:'Tek Tas',MIXED:'Karisik Materyal',COLORBLK:'Renk Blok',STACK:'Stacking',METAL:'Metalik Accent',NATURAL:'Dogal Tas',WOVEN:'Orgu/Makrame',TASSEL:'Puskul',MINIMAL:'Minimal',DIGER:'Diger'};
+  var structFingerprint = getStructuralFingerprint(beads);
 
   var now = new Date();
   var item = {
@@ -1022,29 +1190,28 @@ function addPatternToList() {
     featureName: FEATURE_NAMES[feature] || feature,
     featureCustom: featureCustom,
     fingerprint: fingerprint,
+    structFingerprint: structFingerprint,
     photo: pcPhotoData,
     note: note,
     staff: currentStaff,
     date: now.toLocaleDateString('en-GB'),
-    time: now.toTimeString().slice(0,5)
+    time: now.toTimeString().slice(0,5),
+    isVariant: false,
+    modelId: null
   };
 
-  pcBatchList.push(item);
+  // Structural match kontrolu — ayni tip+boy, farkli renk olabilir
+  var matches = findStructuralMatches(beads, cat);
+  if (matches.length > 0) {
+    showMatchModal(matches, item);
+    return; // Modal karar verecek
+  }
 
-  // Reset form
-  document.getElementById('pcCategory').value = '';
-  document.getElementById('pcBeadContainer').innerHTML = '';
-  pcBeadCount = 0;
-  addBeadRow();
-  document.getElementById('pcFeature').value = '';
-  document.getElementById('pcFeatureCustom').value = '';
-  document.getElementById('pcNote').value = '';
-  pcPhotoData = null;
-  document.getElementById('pcPhotoPreview').innerHTML = '';
-  document.getElementById('pcPhotoInput').value = '';
-  updateSKUPreview();
+  // Eslesen yok — direkt yeni model
+  pcBatchList.push(item);
+  resetPatternForm();
   renderPatternBatchList();
-  showToast('Eklendi: ' + item.categoryName);
+  showToast('Yeni model eklendi: ' + item.categoryName);
 }
 
 function removePatternItem(idx) {
@@ -1061,9 +1228,10 @@ function renderPatternBatchList() {
   container.innerHTML = pcBatchList.map(function(item, i) {
     var thumbHtml = item.photo ? '<img class="pc-thumb-small" src="' + item.photo + '" />' : '';
     var featureText = item.featureName + (item.featureCustom ? ': ' + item.featureCustom : '');
+    var variantTag = item.isVariant ? '<span style="background:#8b5cf6;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">VARYANT → ' + item.modelId + '</span>' : '<span style="background:#16a34a;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">YENI MODEL</span>';
     return '<div class="pc-pattern-item"><div class="pc-item-row">' +
       thumbHtml +
-      '<div class="pc-item-info"><div class="pc-sku">' + item.skuPrefix + '-???</div>' +
+      '<div class="pc-item-info"><div class="pc-sku">' + item.skuPrefix + '-???' + variantTag + '</div>' +
       '<div class="pc-detail">' + item.categoryName + ' | ' + item.beadCount + ' bead | ' + featureText + '</div>' +
       '<div class="pc-beads">' + getBeadSummary(item.beads) + '</div>' +
       (item.note ? '<div class="pc-detail">' + item.note + '</div>' : '') +
