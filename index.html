@@ -413,6 +413,7 @@ textarea{resize:none;height:80px;line-height:1.5}
             </select>
             <select id="varSlotSize" onchange="updateSKUPreview()">
               <option value="">Boy...</option>
+              <option value="3mm">3mm</option>
               <option value="4mm">4mm</option>
               <option value="5mm">5mm</option>
               <option value="5.5mm">5.5mm</option>
@@ -924,8 +925,21 @@ var BEAD_TYPES = [
   {code:'KR',label:'Kristal'},{code:'BN',label:'Boncuk'},{code:'TS',label:'Tas'},
   {code:'TP',label:'Top (spacer)'},{code:'CH',label:'Charm'}
 ];
-var BEAD_SIZES = ['4mm','5mm','5.5mm','6mm','8mm','10mm','12mm'];
-var BEAD_COLORS = ['Seffaf','Beyaz','Siyah','Turkuaz','Mavi','Kirmizi','Sari','Yesil','Mor','Pembe','Gold','Silver','Multi'];
+var BEAD_SIZES = ['3mm','4mm','5mm','5.5mm','6mm','8mm','10mm','12mm'];
+var BEAD_COLORS = [
+  'Seffaf','Beyaz','Krem','Bej',
+  'Siyah','Gri','Acik Gri','Koyu Gri',
+  'Turkuaz','Acik Mavi','Mavi','Koyu Mavi','Lacivert',
+  'Kirmizi','Koyu Kirmizi','Bordo',
+  'Sari','Acik Sari','Hardal',
+  'Yesil','Acik Yesil','Koyu Yesil','Zeytin',
+  'Mor','Lila','Koyu Mor',
+  'Pembe','Acik Pembe','Koyu Pembe','Fuşya',
+  'Turuncu','Mercan',
+  'Kahve','Acik Kahve','Koyu Kahve',
+  'Gold','Rose Gold','Silver','Bakir',
+  'Multi'
+];
 
 var CATEGORY_NAMES = {SB:'Stretch Bracelet',CF:'Cuff Bracelet',AN:'Anklet',NK:'Necklace',RG:'Ring',ER:'Earring'};
 var FEATURE_NAMES = {NAZAR:'Nazar/Evil Eye',CHARM:'Charm',GRADIENT:'Gradient',STONE:'Tek Tas',MIXED:'Karisik Materyal',COLORBLK:'Renk Blok',STACK:'Stacking',METAL:'Metalik Accent',NATURAL:'Dogal Tas',WOVEN:'Orgu/Makrame',TASSEL:'Puskul',MINIMAL:'Minimal',DIGER:'Diger'};
