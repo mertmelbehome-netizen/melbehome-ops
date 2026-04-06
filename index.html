@@ -1197,7 +1197,8 @@ function confirmModel() {
       fixedBeads: fixedBeads,
       varSlot: varSlot,
       skuPrefix: newSkuPrefix,
-      existingSkuPrefix: existingModel.skuPrefix || newSkuPrefix
+      existingSkuPrefix: existingModel.skuPrefix || newSkuPrefix,
+      existingModelId: existingModel.modelId || null
     };
     document.body.appendChild(overlay);
     return;
@@ -1222,6 +1223,7 @@ function reuseExistingModel() {
   closeMatchModal();
   if (def) {
     def.skuPrefix = def.existingSkuPrefix;
+    def.reuseModelId = def.existingModelId;
     goToPhase2(def);
   }
 }
@@ -1318,8 +1320,8 @@ function addVariantToList() {
     staff: currentStaff,
     date: now.toLocaleDateString('en-GB'),
     time: now.toTimeString().slice(0,5),
-    isVariant: pcBatchList.some(function(p){return p.skuPrefix === currentModelDef.skuPrefix}),
-    modelId: null
+    isVariant: !!(currentModelDef.reuseModelId || pcBatchList.some(function(p){return p.skuPrefix === currentModelDef.skuPrefix})),
+    modelId: currentModelDef.reuseModelId || null
   });
 
   // Reset variant inputs only
