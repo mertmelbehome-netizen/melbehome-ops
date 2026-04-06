@@ -925,6 +925,11 @@ var BEAD_TYPES = [
   {code:'KR',label:'Kristal'},{code:'BN',label:'Boncuk'},{code:'TS',label:'Tas'},
   {code:'TP',label:'Top (spacer)'},{code:'CH',label:'Charm'}
 ];
+var CHARM_MODELS = [
+  'Nazar','Kalp','Yildiz','Kelebek','Ay','Gunes','Hayat Agaci',
+  'Fil','Hamsa','Deniz Kabugu','Yaprak','Cicek','Tas','Anahtar',
+  'Sonsuzluk','Pati','Mevlana','Balk','Kutu','Diger'
+];
 var BEAD_SIZES = ['3mm','4mm','5mm','5.5mm','6mm','8mm','10mm','12mm'];
 var BEAD_COLORS = [
   'Seffaf','Beyaz','Krem','Bej',
@@ -964,19 +969,33 @@ function addFixedBeadRow() {
   var container = document.getElementById('pcFixedBeadContainer');
   var row = document.createElement('div');
   row.className = 'bead-row';
+  row.style.flexWrap = 'wrap';
   var num = pcFixedBeadCount;
 
   var typeOpts = '<option value="">Tip...</option>' + BEAD_TYPES.map(function(t){return '<option value="'+t.code+'">'+t.label+'</option>'}).join('');
   var sizeOpts = '<option value="">Boy...</option>' + BEAD_SIZES.map(function(s){return '<option value="'+s+'">'+s+'</option>'}).join('');
   var colorOpts = '<option value="">Renk...</option>' + BEAD_COLORS.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
+  var charmOpts = '<option value="">Charm modeli...</option>' + CHARM_MODELS.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
 
   row.innerHTML = '<span class="bead-num">' + num + '</span>' +
-    '<select onchange="updateSKUPreview()">' + typeOpts + '</select>' +
+    '<select onchange="onBeadTypeChange(this);updateSKUPreview()">' + typeOpts + '</select>' +
     '<select onchange="updateSKUPreview()">' + sizeOpts + '</select>' +
     '<select onchange="updateSKUPreview()">' + colorOpts + '</select>' +
-    '<button class="bead-remove" onclick="removeFixedBeadRow(this)">×</button>';
+    '<button class="bead-remove" onclick="removeFixedBeadRow(this)">×</button>' +
+    '<select class="charm-select" style="display:none;width:100%;margin-top:4px;margin-left:24px" onchange="updateSKUPreview()">' + charmOpts + '</select>';
   container.appendChild(row);
   updateSKUPreview();
+}
+
+function onBeadTypeChange(sel) {
+  var row = sel.closest('.bead-row');
+  var charmSel = row.querySelector('.charm-select');
+  if (sel.value === 'CH') {
+    charmSel.style.display = 'block';
+  } else {
+    charmSel.style.display = 'none';
+    charmSel.value = '';
+  }
 }
 
 function removeFixedBeadRow(btn) {
@@ -997,8 +1016,11 @@ function getFixedBeads() {
     var type = selects[0].value;
     var size = selects[1].value;
     var color = selects[2].value;
+    var charmModel = selects[3] ? selects[3].value : '';
     if (type && size && color) {
-      beads.push({type:type, size:size, color:color, fixed:true});
+      var bead = {type:type, size:size, color:color, fixed:true};
+      if (type === 'CH' && charmModel) bead.charmModel = charmModel;
+      beads.push(bead);
     }
   }
   return beads;
@@ -1042,14 +1064,10 @@ function generateSKUPrefix(beads) {
 function updateSKUPreview() {
   var beads = getAllBeadsForSKU();
   var prefix = generateSKUPrefix(beads);
-  var feature = document.getElementById('pcFeature').value;
   var el = document.getElementById('pcSKUPreview');
-  if (prefix && feature) {
-    el.textContent = prefix + '-' + feature + '-???';
-    el.style.opacity = '1';
-  } else if (prefix) {
+  if (prefix) {
     el.textContent = prefix + '-???';
-    el.style.opacity = '0.7';
+    el.style.opacity = '1';
   } else {
     el.textContent = 'SKU: ---';
     el.style.opacity = '0.5';
@@ -1078,17 +1096,27 @@ function handlePatternPhoto(input) {
 }
 
 function getBeadFingerprint(beads) {
-  return beads.map(function(b){return b.type+':'+b.size+':'+b.color}).sort().join('|');
+  return beads.map(function(b){
+    var base = b.type+':'+b.size+':'+b.color;
+    if (b.charmModel) base += ':'+b.charmModel;
+    return base;
+  }).sort().join('|');
 }
 
 function getStructuralFingerprint(beads) {
-  return beads.map(function(b){return b.type+':'+b.size}).sort().join('|');
+  return beads.map(function(b){
+    var base = b.type+':'+b.size;
+    if (b.charmModel) base += ':'+b.charmModel;
+    return base;
+  }).sort().join('|');
 }
 
 function getBeadSummary(beads) {
   return beads.map(function(b,i){
     var typeName = BEAD_TYPES.find(function(t){return t.code===b.type});
-    return (i+1) + '. ' + b.size + ' ' + b.color + ' ' + (typeName ? typeName.label : b.type);
+    var label = (typeName ? typeName.label : b.type);
+    if (b.charmModel) label += ' (' + b.charmModel + ')';
+    return (i+1) + '. ' + b.size + ' ' + b.color + ' ' + label;
   }).join(' / ');
 }
 
@@ -1105,7 +1133,7 @@ function confirmModel() {
 
   var allBeads = getAllBeadsForSKU();
   var prefix = generateSKUPrefix(allBeads);
-  var newSkuPrefix = prefix + '-' + feature;
+  var newSkuPrefix = prefix;
 
   // Batch'te veya sheet'te ayni model var mi kontrol et
   var fixedFP = getStructuralFingerprint(fixedBeads);
@@ -1316,7 +1344,7 @@ function addSinglePattern() {
 
   var now = new Date();
   pcBatchList.push({
-    skuPrefix: prefix + '-' + feature,
+    skuPrefix: prefix,
     group: document.getElementById('pcGroup').value,
     category: cat,
     categoryName: CATEGORY_NAMES[cat] || cat,
