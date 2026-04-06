@@ -368,9 +368,13 @@ textarea{resize:none;height:80px;line-height:1.5}
         <select id="pcCategory" onchange="updateSKUPreview()">
           <option value="">Sec...</option>
           <option value="SB">Stretch Bracelet</option>
+          <option value="LX">Lux Crystal Bracelet</option>
+          <option value="LC">Lux Cobra Bracelet</option>
           <option value="CF">Cuff Bracelet</option>
           <option value="AN">Anklet</option>
-          <option value="NK">Necklace</option>
+          <option value="NL">Necklace Lux</option>
+          <option value="NC">Necklace Crystal</option>
+          <option value="NB">Necklace Bead</option>
           <option value="RG">Ring</option>
           <option value="ER">Earring</option>
         </select>
@@ -484,9 +488,13 @@ textarea{resize:none;height:80px;line-height:1.5}
       <select id="pcFilterCat" onchange="filterPatternList()">
         <option value="">Tumu</option>
         <option value="SB">Stretch Bracelet</option>
+        <option value="LX">Lux Crystal Bracelet</option>
+        <option value="LC">Lux Cobra Bracelet</option>
         <option value="CF">Cuff Bracelet</option>
         <option value="AN">Anklet</option>
-        <option value="NK">Necklace</option>
+        <option value="NL">Necklace Lux</option>
+        <option value="NC">Necklace Crystal</option>
+        <option value="NB">Necklace Bead</option>
         <option value="RG">Ring</option>
         <option value="ER">Earring</option>
       </select>
@@ -954,7 +962,7 @@ var BEAD_COLORS = [
   'Multi'
 ];
 
-var CATEGORY_NAMES = {SB:'Stretch Bracelet',CF:'Cuff Bracelet',AN:'Anklet',NK:'Necklace',RG:'Ring',ER:'Earring'};
+var CATEGORY_NAMES = {SB:'Stretch Bracelet',LX:'Lux Crystal Bracelet',LC:'Lux Cobra Bracelet',CF:'Cuff Bracelet',AN:'Anklet',NL:'Necklace Lux',NC:'Necklace Crystal',NB:'Necklace Bead',RG:'Ring',ER:'Earring'};
 var FEATURE_NAMES = {NAZAR:'Nazar/Evil Eye',CHARM:'Charm',GRADIENT:'Gradient',STONE:'Tek Tas',MIXED:'Karisik Materyal',COLORBLK:'Renk Blok',STACK:'Stacking',METAL:'Metalik Accent',NATURAL:'Dogal Tas',WOVEN:'Orgu/Makrame',TASSEL:'Puskul',MINIMAL:'Minimal',DIGER:'Diger'};
 
 function switchPcView(view) {
