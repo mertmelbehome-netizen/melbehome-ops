@@ -127,6 +127,21 @@ textarea{resize:none;height:80px;line-height:1.5}
 .list-count{font-size:13px;color:#888;margin-bottom:8px}
 .staff-badge{display:inline-block;background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a;font-size:12px;padding:4px 10px;border-radius:999px;margin-bottom:12px}
 .staff-badge.unknown{background:#fef2f2;border-color:#fecaca;color:#dc2626}
+.tab-btn{padding:8px 16px;border-radius:20px;border:1px solid #e0e0e0;background:#fff;font-size:13px;cursor:pointer;color:#666}
+.tab-btn.active{background:#111;color:#fff;border-color:#111}
+.task-card{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:12px;margin-bottom:8px}
+.task-card.done{opacity:0.5}
+.task-top{display:flex;justify-content:space-between;align-items:flex-start}
+.task-text{font-size:14px;font-weight:500;color:#111;flex:1;margin-right:8px}
+.task-check{width:36px;height:36px;border-radius:50%;border:2px solid #22c55e;background:none;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#22c55e}
+.task-check:active{background:#f0fdf4}
+.task-check.checked{background:#22c55e;color:#fff;border-color:#22c55e}
+.task-meta{font-size:12px;color:#888;margin-top:6px}
+.task-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;margin-right:4px}
+.task-badge.store{background:#e0f2fe;color:#0284c7}
+.task-badge.person{background:#fef3c7;color:#b45309}
+.task-badge.due{background:#fce7f3;color:#be185d}
+.task-badge.overdue{background:#fecaca;color:#dc2626}
 .login-card{background:#fff;border-radius:12px;padding:2rem;text-align:center;margin-bottom:1rem}
 .login-card h3{margin-bottom:12px;font-size:16px}
 </style>
@@ -174,6 +189,13 @@ textarea{resize:none;height:80px;line-height:1.5}
       <div class="module-info">
         <h3>Training Assistant</h3>
         <p>Ask about procedures, products & more</p>
+      </div>
+    </div>
+    <div class="module-card" onclick="openModule('tasks')">
+      <div class="module-icon">📋</div>
+      <div class="module-info">
+        <h3>My Tasks</h3>
+        <p>View and complete your assigned tasks</p>
       </div>
     </div>
     <div class="module-card" id="patternCatalogCard" style="display:none" onclick="openModule('patternCatalog')">
@@ -310,6 +332,49 @@ textarea{resize:none;height:80px;line-height:1.5}
     <div id="dnListContainer"></div>
     <button class="submit-btn" id="dnSubmitBtn" onclick="submitDnBatch()" style="display:none">Submit All</button>
   </div>
+</div>
+
+<!-- TASKS MODULE -->
+<div id="tasks" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <h2>My Tasks</h2>
+  </div>
+  <div id="tasksStaffBadge" class="staff-badge"></div>
+
+  <!-- Task creation form — Mert only -->
+  <div id="taskCreateSection" style="display:none">
+    <div class="card">
+      <label>Assign to</label>
+      <select id="taskAssignTo">
+        <option value="">Select person...</option>
+        <option value="ALL">Everyone in store</option>
+        <option>Sachin</option><option>Sabina</option><option>Nuray</option>
+        <option>Mendy</option><option>Emel</option><option>Chloe</option>
+        <option>Pratika</option><option>Akancha</option><option>Kashan</option>
+      </select>
+      <label>Store</label>
+      <select id="taskStore">
+        <option value="">Select store...</option>
+        <option>BRA</option><option>GUI</option><option>GLO</option><option>WAT</option><option>STO</option>
+      </select>
+      <label>Task</label>
+      <textarea id="taskDesc" placeholder="What needs to be done..."></textarea>
+      <label>Due date</label>
+      <input id="taskDue" type="date" />
+      <button class="submit-btn" onclick="createTask()">Create Task</button>
+    </div>
+  </div>
+
+  <!-- Filter tabs -->
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <button class="tab-btn active" id="tabPending" onclick="filterTasks('pending')">Pending</button>
+    <button class="tab-btn" id="tabDone" onclick="filterTasks('done')">Done</button>
+    <button class="tab-btn" id="tabAll" onclick="filterTasks('all')">All</button>
+  </div>
+
+  <div class="list-count" id="taskCount">0 tasks</div>
+  <div id="taskListContainer"></div>
 </div>
 
 <div id="chat" class="screen">
@@ -565,6 +630,11 @@ function openModule(id) {
   }
   if (id === 'dn') {
     document.getElementById('dnStaffBadge').textContent = 'Logged in as: ' + currentStaff;
+  }
+  if (id === 'tasks') {
+    document.getElementById('tasksStaffBadge').textContent = 'Logged in as: ' + currentStaff;
+    document.getElementById('taskCreateSection').style.display = (currentPin === '9999') ? 'block' : 'none';
+    loadTasks();
   }
   if (id === 'patternCatalog') {
     document.getElementById('pcStaffBadge').textContent = 'Logged in as: ' + currentStaff;
@@ -869,6 +939,116 @@ document.addEventListener('click', function(e) {
     for (var i = 0; i < boxes.length; i++) boxes[i].style.display = 'none';
   }
 });
+
+// --- Tasks ---
+var allTasks = [];
+var taskFilter = 'pending';
+
+function loadTasks() {
+  fetch(SCRIPT_URL + '?action=task_list&staff=' + encodeURIComponent(currentStaff) + '&pin=' + currentPin)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        allTasks = data.tasks;
+        renderTasks();
+      } else {
+        showToast('Error loading tasks');
+      }
+    })
+    .catch(function() { showToast('Connection error'); });
+}
+
+function filterTasks(f) {
+  taskFilter = f;
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById('tab' + f.charAt(0).toUpperCase() + f.slice(1)).classList.add('active');
+  renderTasks();
+}
+
+function renderTasks() {
+  var container = document.getElementById('taskListContainer');
+  var countEl = document.getElementById('taskCount');
+  var filtered = allTasks;
+  if (taskFilter === 'pending') filtered = allTasks.filter(function(t) { return t.status === 'pending'; });
+  if (taskFilter === 'done') filtered = allTasks.filter(function(t) { return t.status === 'done'; });
+
+  countEl.textContent = filtered.length + ' task(s)';
+
+  if (!filtered.length) {
+    container.innerHTML = '<div style="text-align:center;color:#888;padding:2rem">No ' + taskFilter + ' tasks</div>';
+    return;
+  }
+
+  var today = new Date().toISOString().split('T')[0];
+  container.innerHTML = filtered.map(function(t) {
+    var isDone = t.status === 'done';
+    var badges = '<span class="task-badge store">' + t.store + '</span>';
+    if (t.assignedTo !== 'ALL') badges += '<span class="task-badge person">' + t.assignedTo + '</span>';
+    if (t.dueDate) {
+      var isOverdue = !isDone && t.dueDate < today;
+      badges += '<span class="task-badge ' + (isOverdue ? 'overdue' : 'due') + '">' + (isOverdue ? 'Overdue: ' : 'Due: ') + t.dueDate + '</span>';
+    }
+    var checkBtn = isDone
+      ? '<div class="task-check checked">✓</div>'
+      : '<button class="task-check" onclick="completeTask(' + t.id + ')">✓</button>';
+    return '<div class="task-card ' + (isDone ? 'done' : '') + '">' +
+      '<div class="task-top">' +
+        '<div class="task-text">' + t.task + '</div>' +
+        checkBtn +
+      '</div>' +
+      '<div class="task-meta">' + badges + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function completeTask(id) {
+  fetch(SCRIPT_URL + '?action=task_complete&id=' + id + '&staff=' + encodeURIComponent(currentStaff))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        showToast('Task completed!');
+        loadTasks();
+      } else {
+        showToast('Error: ' + (data.error || 'try again'));
+      }
+    })
+    .catch(function() { showToast('Connection error'); });
+}
+
+function createTask() {
+  var assignedTo = document.getElementById('taskAssignTo').value;
+  var store = document.getElementById('taskStore').value;
+  var task = document.getElementById('taskDesc').value.trim();
+  var dueDate = document.getElementById('taskDue').value;
+
+  if (!assignedTo) { showToast('Select a person'); return; }
+  if (!store) { showToast('Select a store'); return; }
+  if (!task) { showToast('Enter a task'); return; }
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({
+      action: 'task_create',
+      assignedTo: assignedTo, store: store, task: task,
+      dueDate: dueDate, createdBy: currentStaff
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      showToast('Task created!');
+      document.getElementById('taskAssignTo').value = '';
+      document.getElementById('taskStore').value = '';
+      document.getElementById('taskDesc').value = '';
+      document.getElementById('taskDue').value = '';
+      loadTasks();
+    } else {
+      showToast('Error: ' + (data.error || 'try again'));
+    }
+  })
+  .catch(function() { showToast('Connection error'); });
+}
 
 // --- Training Assistant Chat ---
 var chatHistory = [];
