@@ -144,6 +144,23 @@ textarea{resize:none;height:80px;line-height:1.5}
 .task-badge.overdue{background:#fecaca;color:#dc2626}
 .login-card{background:#fff;border-radius:12px;padding:2rem;text-align:center;margin-bottom:1rem}
 .login-card h3{margin-bottom:12px;font-size:16px}
+/* Home redesign */
+.home-date{font-size:13px;color:#888;margin-bottom:1.5rem}
+.section-label{font-size:13px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;margin-top:1.5rem}
+.home-task-preview{background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px;border:1px solid #e8e8e8;cursor:pointer}
+.home-task-preview:active{background:#f5f5f5}
+.home-task-dot{width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0}
+.home-task-dot.overdue{background:#ef4444}
+.home-task-text{font-size:13px;color:#111;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-task-store{font-size:11px;color:#888;flex-shrink:0}
+.home-task-empty{text-align:center;color:#aaa;font-size:13px;padding:1.5rem}
+.module-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.module-card-mini{background:#fff;border-radius:12px;padding:1rem;cursor:pointer;border:1px solid #e8e8e8;text-align:center}
+.module-card-mini:active{background:#f5f5f5}
+.module-card-mini .module-icon{width:36px;height:36px;border-radius:8px;background:#111;display:inline-flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:6px}
+.module-card-mini h3{font-size:13px;font-weight:600;color:#111}
+.date-filter-wrap{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+.date-filter-wrap input{flex:1;padding:10px;font-size:14px;border:1px solid #e0e0e0;border-radius:8px;background:#fafafa}
 </style>
 </head>
 <body>
@@ -163,51 +180,40 @@ textarea{resize:none;height:80px;line-height:1.5}
   <div style="max-width:480px;margin:0 auto;padding:1rem">
     <div class="home-title">Melbehome Ops</div>
     <div id="homeGreeting" class="home-sub"></div>
-    <div class="module-card" onclick="openModule('stock')">
-      <div class="module-icon">📦</div>
-      <div class="module-info">
+    <div class="home-date" id="homeDate"></div>
+
+    <div class="section-label" id="taskSectionLabel">Today's Tasks</div>
+    <div id="homeTaskPreview"></div>
+
+    <div class="section-label">Modules</div>
+    <div class="module-grid">
+      <div class="module-card-mini" onclick="openModule('stock')">
+        <div class="module-icon">📦</div>
         <h3>Stock Count</h3>
-        <p>Count and log inventory</p>
       </div>
-    </div>
-    <div class="module-card" onclick="openModule('faulty')">
-      <div class="module-icon">⚠️</div>
-      <div class="module-info">
+      <div class="module-card-mini" onclick="openModule('faulty')">
+        <div class="module-icon">⚠️</div>
         <h3>Faulty Items</h3>
-        <p>Report broken or damaged products</p>
       </div>
-    </div>
-    <div class="module-card" onclick="openModule('dn')">
-      <div class="module-icon">🚚</div>
-      <div class="module-info">
+      <div class="module-card-mini" onclick="openModule('dn')">
+        <div class="module-icon">🚚</div>
         <h3>Delivery Note</h3>
-        <p>Record stock transfers between stores</p>
       </div>
-    </div>
-    <div class="module-card" onclick="openModule('chat')">
-      <div class="module-icon">💬</div>
-      <div class="module-info">
-        <h3>Training Assistant</h3>
-        <p>Ask about procedures, products & more</p>
+      <div class="module-card-mini" onclick="openModule('tasks')">
+        <div class="module-icon">📋</div>
+        <h3>All Tasks</h3>
       </div>
-    </div>
-    <div class="module-card" onclick="openModule('tasks')">
-      <div class="module-icon">📋</div>
-      <div class="module-info">
-        <h3>My Tasks</h3>
-        <p>View and complete your assigned tasks</p>
+      <div class="module-card-mini" onclick="openModule('chat')">
+        <div class="module-icon">💬</div>
+        <h3>Training</h3>
       </div>
-    </div>
-    <div class="module-card" id="patternCatalogCard" style="display:none" onclick="openModule('patternCatalog')">
-      <div class="module-icon">💎</div>
-      <div class="module-info">
-        <h3>Pattern Catalog</h3>
-        <p>Register jewelry pattern variants & barcodes</p>
+      <div class="module-card-mini" id="patternCatalogCard" style="display:none" onclick="openModule('patternCatalog')">
+        <div class="module-icon">💎</div>
+        <h3>Patterns</h3>
       </div>
     </div>
   </div>
 </div>
-
 <div id="stock" class="screen">
   <div class="header">
     <button class="back-btn" onclick="goHome()">←</button>
@@ -366,6 +372,11 @@ textarea{resize:none;height:80px;line-height:1.5}
     </div>
   </div>
 
+  <!-- Date filter -->
+  <div class="date-filter-wrap">
+    <input type="date" id="taskDateFilter" onchange="renderTasks()" />
+    <button class="tab-btn" onclick="clearDateFilter()" style="white-space:nowrap">All dates</button>
+  </div>
   <!-- Filter tabs -->
   <div style="display:flex;gap:8px;margin-bottom:12px">
     <button class="tab-btn active" id="tabPending" onclick="filterTasks('pending')">Pending</button>
@@ -612,6 +623,7 @@ function checkPin() {
     document.getElementById('pinScreen').classList.remove('active');
     document.getElementById('home').classList.add('active');
     document.getElementById('homeGreeting').textContent = 'Hi ' + currentStaff + ' — select a module';
+var today = new Date();    var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];    document.getElementById('homeDate').textContent = days[today.getDay()] + ', ' + today.getDate() + ' ' + months[today.getMonth()] + ' ' + today.getFullYear();    loadHomeTasks();
     document.getElementById('staff').value = currentStaff;
     document.getElementById('patternCatalogCard').style.display = PATTERN_ALLOWED_PINS.includes(pin) ? 'flex' : 'none';
   } else {
@@ -944,6 +956,56 @@ document.addEventListener('click', function(e) {
 var allTasks = [];
 var taskFilter = 'pending';
 
+
+function formatDueDate(d) {
+  if (!d) return "";
+  var s = String(d);
+  if (s.indexOf("T") !== -1) s = s.split("T")[0];
+  if (s.match(/^d{4}-d{2}-d{2}$/)) {
+    var parts = s.split("-");
+    return parts[2] + "/" + parts[1] + "/" + parts[0];
+  }
+  return s;
+}
+
+function clearDateFilter() {
+  document.getElementById("taskDateFilter").value = "";
+  renderTasks();
+}
+
+function loadHomeTasks() {
+  fetch(SCRIPT_URL + "?action=task_list&staff=" + encodeURIComponent(currentStaff) + "&pin=" + currentPin)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success) return;
+      var today = new Date().toISOString().split("T")[0];
+      var pending = data.tasks.filter(function(t) {
+        if (t.status !== "pending") return false;
+        if (!t.dueDate) return true;
+        var dd = String(t.dueDate);
+        if (dd.indexOf("T") !== -1) dd = dd.split("T")[0];
+        return dd <= today;
+      });
+      var container = document.getElementById("homeTaskPreview");
+      var label = document.getElementById("taskSectionLabel");
+      label.textContent = "Today (" + pending.length + " pending)";
+      if (!pending.length) {
+        container.innerHTML = "<div class=\"home-task-empty\">No tasks for today</div>";
+        return;
+      }
+      container.innerHTML = pending.slice(0, 5).map(function(t) {
+        var dd = String(t.dueDate || ""); if (dd.indexOf("T") !== -1) dd = dd.split("T")[0];
+        var isOverdue = dd && dd < today;
+        return "<div class=\"home-task-preview\" onclick=\"openModule('tasks')\">" +
+          "<div class=\"home-task-dot " + (isOverdue ? "overdue" : "") + "\"></div>" +
+          "<div class=\"home-task-text\">" + t.task + "</div>" +
+          "<div class=\"home-task-store\">" + t.store + "</div>" +
+        "</div>";
+      }).join("");
+      if (pending.length > 5) container.innerHTML += "<div class=\"home-task-empty\" onclick=\"openModule('tasks')\">+" + (pending.length - 5) + " more...</div>";
+    })
+    .catch(function() {});
+}
 function loadTasks() {
   fetch(SCRIPT_URL + '?action=task_list&staff=' + encodeURIComponent(currentStaff) + '&pin=' + currentPin)
     .then(function(r) { return r.json(); })
@@ -966,39 +1028,45 @@ function filterTasks(f) {
 }
 
 function renderTasks() {
-  var container = document.getElementById('taskListContainer');
-  var countEl = document.getElementById('taskCount');
+  var container = document.getElementById("taskListContainer");
+  var countEl = document.getElementById("taskCount");
+  var dateFilter = document.getElementById("taskDateFilter").value;
   var filtered = allTasks;
-  if (taskFilter === 'pending') filtered = allTasks.filter(function(t) { return t.status === 'pending'; });
-  if (taskFilter === 'done') filtered = allTasks.filter(function(t) { return t.status === 'done'; });
-
-  countEl.textContent = filtered.length + ' task(s)';
-
+  if (taskFilter === "pending") filtered = allTasks.filter(function(t) { return t.status === "pending"; });
+  if (taskFilter === "done") filtered = allTasks.filter(function(t) { return t.status === "done"; });
+  if (dateFilter) {
+    filtered = filtered.filter(function(t) {
+      var dd = String(t.dueDate || ""); if (dd.indexOf("T") !== -1) dd = dd.split("T")[0];
+      return dd === dateFilter;
+    });
+  }
+  countEl.textContent = filtered.length + " task(s)";
   if (!filtered.length) {
     container.innerHTML = '<div style="text-align:center;color:#888;padding:2rem">No ' + taskFilter + ' tasks</div>';
     return;
   }
-
-  var today = new Date().toISOString().split('T')[0];
+  var today = new Date().toISOString().split("T")[0];
   container.innerHTML = filtered.map(function(t) {
-    var isDone = t.status === 'done';
+    var isDone = t.status === "done";
+    var dd = String(t.dueDate || ""); if (dd.indexOf("T") !== -1) dd = dd.split("T")[0];
     var badges = '<span class="task-badge store">' + t.store + '</span>';
-    if (t.assignedTo !== 'ALL') badges += '<span class="task-badge person">' + t.assignedTo + '</span>';
-    if (t.dueDate) {
-      var isOverdue = !isDone && t.dueDate < today;
-      badges += '<span class="task-badge ' + (isOverdue ? 'overdue' : 'due') + '">' + (isOverdue ? 'Overdue: ' : 'Due: ') + t.dueDate + '</span>';
+    if (t.assignedTo !== "ALL") badges += '<span class="task-badge person">' + t.assignedTo + '</span>';
+    if (dd) {
+      var isOverdue = !isDone && dd < today;
+      badges += '<span class="task-badge ' + (isOverdue ? "overdue" : "due") + '">' + (isOverdue ? "Overdue: " : "Due: ") + formatDueDate(dd) + '</span>';
     }
     var checkBtn = isDone
       ? '<div class="task-check checked">✓</div>'
       : '<button class="task-check" onclick="completeTask(' + t.id + ')">✓</button>';
-    return '<div class="task-card ' + (isDone ? 'done' : '') + '">' +
+    return '<div class="task-card ' + (isDone ? "done" : "") + '">' +
       '<div class="task-top">' +
         '<div class="task-text">' + t.task + '</div>' +
         checkBtn +
       '</div>' +
       '<div class="task-meta">' + badges + '</div>' +
     '</div>';
-  }).join('');
+  }).join("");
+}
 }
 
 function completeTask(id) {
