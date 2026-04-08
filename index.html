@@ -965,7 +965,7 @@ function formatDueDate(d) {
   if (!d) return "";
   var s = String(d);
   if (s.indexOf("T") !== -1) s = s.split("T")[0];
-  if (s.match(/^d{4}-d{2}-d{2}$/)) {
+  if (s.match(/^\d{4}-\d{2}-\d{2}$/)) {
     var parts = s.split("-");
     return parts[2] + "/" + parts[1] + "/" + parts[0];
   }
@@ -1070,7 +1070,6 @@ function renderTasks() {
       '<div class="task-meta">' + badges + '</div>' +
     '</div>';
   }).join("");
-}
 }
 
 function completeTask(id) {
