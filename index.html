@@ -1097,10 +1097,12 @@ function renderTasks() {
       var fullUrl = url.replace('sz=w400','sz=w800');
       return '<img src="' + url + '" onclick="zoomPhoto(\'' + fullUrl + '\')" style="max-width:100%;border-radius:6px;margin-top:6px;cursor:pointer" />';
     }).join('');
-    var actionBtns = isDone ? '' :
-      '<div style="display:flex;gap:6px;margin-top:6px">' +
-      '<button style="flex:1;font-size:11px;padding:5px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="editTaskNote(' + t.id + ')">Not Ekle/Duzenle</button>' +
-      '<button style="flex:1;font-size:11px;padding:5px;background:#8b5cf6;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="addTaskPhoto(' + t.id + ')">📷 Foto</button>' +
+    var hasPhotos = photos.length > 0;
+    var actionBtns = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">' +
+      (isDone ? '' : '<button style="flex:1;font-size:11px;padding:5px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="editTask(' + t.id + ')">Duzenle</button>') +
+      (isDone ? '' : '<button style="flex:1;font-size:11px;padding:5px;background:#8b5cf6;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="addTaskPhoto(' + t.id + ')">📷 Foto</button>') +
+      (hasPhotos ? '<button style="flex:1;font-size:11px;padding:5px;background:#c00;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="deleteTaskPhotos(' + t.id + ')">Foto Sil</button>' : '') +
+      '<button style="flex:1;font-size:11px;padding:5px;background:#900;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="deleteTask(' + t.id + ')">Sil</button>' +
       '</div>';
     return '<div class="task-card ' + (isDone ? "done" : "") + '">' +
       '<div class="task-top">' +
@@ -1162,14 +1164,12 @@ var taskPhotoData = null;
 
 function handleTaskPhoto(input) {
   if (!input.files || !input.files[0]) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    taskPhotoData = e.target.result;
+  compressImage(input.files[0], 800, 0.7, function(compressed) {
+    taskPhotoData = compressed;
     document.getElementById('taskPhotoPreview').innerHTML =
       '<img src="' + taskPhotoData + '" style="max-width:100%;border-radius:8px;margin-top:8px" />' +
       '<button class="submit-btn" style="background:#c00;margin-top:4px;font-size:12px;padding:6px" onclick="removeTaskPhoto()">Kaldir</button>';
-  };
-  reader.readAsDataURL(input.files[0]);
+  });
 }
 
 function removeTaskPhoto() {
@@ -1924,21 +1924,40 @@ function renderPatternBrowser() {
   }, 100);
 }
 
-// === TASK NOTE & PHOTO ===
-function editTaskNote(id) {
+// === TASK EDIT, DELETE, PHOTO ===
+function compressImage(file, maxWidth, quality, callback) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      var canvas = document.createElement('canvas');
+      var scale = Math.min(1, maxWidth / img.width);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      callback(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function editTask(id) {
   var task = allTasks.find(function(t) { return t.id === id; });
-  var current = task ? (task.note || '') : '';
-  var newNote = prompt('Not:', current);
-  if (newNote === null) return;
+  if (!task) return;
+  var newTitle = prompt('Task:', task.task);
+  if (newTitle === null) return;
+  var newNote = prompt('Not:', task.note || '');
+  if (newNote === null) newNote = task.note || '';
   showToast('Kaydediliyor...');
   fetch(SCRIPT_URL, {
     method: 'POST',
     headers: {'Content-Type': 'text/plain'},
-    body: JSON.stringify({ action: 'task_update', id: id, note: newNote })
+    body: JSON.stringify({ action: 'task_update', id: id, task: newTitle, note: newNote })
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
-    if (data.success) { showToast('Not guncellendi!'); loadTasks(); }
+    if (data.success) { showToast('Task guncellendi!'); loadTasks(); }
     else showToast('Hata: ' + (data.error || ''));
   })
   .catch(function() { showToast('Baglanti hatasi'); });
@@ -1951,13 +1970,13 @@ function addTaskPhoto(id) {
   input.capture = 'environment';
   input.onchange = function() {
     if (!input.files || !input.files[0]) return;
-    var reader = new FileReader();
-    reader.onload = function(e) {
+    showToast('Foto kucultuluyor...');
+    compressImage(input.files[0], 800, 0.7, function(compressed) {
       showToast('Foto yukleniyor...');
       fetch(SCRIPT_URL, {
         method: 'POST',
         headers: {'Content-Type': 'text/plain'},
-        body: JSON.stringify({ action: 'task_update', id: id, photo: e.target.result })
+        body: JSON.stringify({ action: 'task_update', id: id, photo: compressed })
       })
       .then(function(r) { return r.json(); })
       .then(function(data) {
@@ -1965,10 +1984,35 @@ function addTaskPhoto(id) {
         else showToast('Hata: ' + (data.error || ''));
       })
       .catch(function() { showToast('Baglanti hatasi'); });
-    };
-    reader.readAsDataURL(input.files[0]);
+    });
   };
   input.click();
+}
+
+function deleteTaskPhotos(id) {
+  if (!confirm('Tum fotograflari silmek istediginize emin misiniz?')) return;
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain'},
+    body: JSON.stringify({ action: 'task_update', id: id, deletePhoto: true })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) { showToast('Fotograflar silindi'); loadTasks(); }
+    else showToast('Hata: ' + (data.error || ''));
+  })
+  .catch(function() { showToast('Baglanti hatasi'); });
+}
+
+function deleteTask(id) {
+  if (!confirm('Bu taski silmek istediginize emin misiniz?')) return;
+  fetch(SCRIPT_URL + '?action=task_delete&id=' + id)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) { showToast('Task silindi'); loadTasks(); }
+      else showToast('Hata: ' + (data.error || ''));
+    })
+    .catch(function() { showToast('Baglanti hatasi'); });
 }
 
 // === BARCODE SCANNER ===
