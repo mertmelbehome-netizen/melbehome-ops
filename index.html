@@ -374,7 +374,7 @@ textarea{resize:none;height:80px;line-height:1.5}
       <label>Note (optional)</label>
       <textarea id="taskNote" rows="2" placeholder="Ekstra detay, aciklama..."></textarea>
       <div class="photo-area">
-        <label class="photo-btn" for="taskPhotoInput">📷 Fotograf Ekle</label>
+        <label class="photo-btn" for="taskPhotoInput">📷 Add Photo</label>
         <input type="file" id="taskPhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handleTaskPhoto(this)" />
         <div id="taskPhotoPreview"></div>
       </div>
@@ -1098,12 +1098,13 @@ function renderTasks() {
       return '<img src="' + url + '" onclick="zoomPhoto(\'' + fullUrl + '\')" style="width:60px;height:60px;object-fit:cover;border-radius:6px;cursor:pointer" />';
     }).join('') + '</div>' : '';
     var hasPhotos = photos.length > 0;
-    var actionBtns = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">' +
-      (isDone ? '' : '<button style="flex:1;font-size:11px;padding:5px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="editTask(' + t.id + ')">Duzenle</button>') +
-      (isDone ? '' : '<button style="flex:1;font-size:11px;padding:5px;background:#8b5cf6;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="addTaskPhoto(' + t.id + ')">📷 Foto</button>') +
-      (hasPhotos ? '<button style="flex:1;font-size:11px;padding:5px;background:#c00;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="deleteTaskPhotos(' + t.id + ')">Foto Sil</button>' : '') +
-      '<button style="flex:1;font-size:11px;padding:5px;background:#900;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="deleteTask(' + t.id + ')">Sil</button>' +
-      '</div>';
+    var canEdit = (currentPin === '9999') || (STORE_MANAGERS[currentStaff] && STORE_MANAGERS[currentStaff] === t.store);
+    var actionBtns = canEdit ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">' +
+      (isDone ? '' : '<button style="flex:1;font-size:11px;padding:5px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="editTask(' + t.id + ')">Edit</button>') +
+      (isDone ? '' : '<button style="flex:1;font-size:11px;padding:5px;background:#8b5cf6;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="addTaskPhoto(' + t.id + ')">📷 Photo</button>') +
+      (hasPhotos ? '<button style="flex:1;font-size:11px;padding:5px;background:#c00;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="deleteTaskPhotos(' + t.id + ')">Remove Photos</button>' : '') +
+      '<button style="flex:1;font-size:11px;padding:5px;background:#900;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="deleteTask(' + t.id + ')">Delete</button>' +
+      '</div>' : '';
     return '<div class="task-card ' + (isDone ? "done" : "") + '">' +
       '<div class="task-top">' +
         '<div class="task-text">' + t.task + '</div>' +
@@ -1168,7 +1169,7 @@ function handleTaskPhoto(input) {
     taskPhotoData = compressed;
     document.getElementById('taskPhotoPreview').innerHTML =
       '<img src="' + taskPhotoData + '" style="max-width:100%;border-radius:8px;margin-top:8px" />' +
-      '<button class="submit-btn" style="background:#c00;margin-top:4px;font-size:12px;padding:6px" onclick="removeTaskPhoto()">Kaldir</button>';
+      '<button class="submit-btn" style="background:#c00;margin-top:4px;font-size:12px;padding:6px" onclick="removeTaskPhoto()">Remove</button>';
   });
 }
 
@@ -1947,9 +1948,9 @@ function editTask(id) {
   if (!task) return;
   var newTitle = prompt('Task:', task.task);
   if (newTitle === null) return;
-  var newNote = prompt('Not:', task.note || '');
+  var newNote = prompt('Note:', task.note || '');
   if (newNote === null) newNote = task.note || '';
-  showToast('Kaydediliyor...');
+  showToast('Saving...');
   fetch(SCRIPT_URL, {
     method: 'POST',
     headers: {'Content-Type': 'text/plain'},
@@ -1957,10 +1958,10 @@ function editTask(id) {
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
-    if (data.success) { showToast('Task guncellendi!'); loadTasks(); }
-    else showToast('Hata: ' + (data.error || ''));
+    if (data.success) { showToast('Task updated!'); loadTasks(); }
+    else showToast('Error: ' + (data.error || ''));
   })
-  .catch(function() { showToast('Baglanti hatasi'); });
+  .catch(function() { showToast('Connection error'); });
 }
 
 function addTaskPhoto(id) {
@@ -1970,9 +1971,9 @@ function addTaskPhoto(id) {
   input.capture = 'environment';
   input.onchange = function() {
     if (!input.files || !input.files[0]) return;
-    showToast('Foto kucultuluyor...');
+    showToast('Compressing...');
     compressImage(input.files[0], 800, 0.7, function(compressed) {
-      showToast('Foto yukleniyor...');
+      showToast('Uploading photo...');
       fetch(SCRIPT_URL, {
         method: 'POST',
         headers: {'Content-Type': 'text/plain'},
@@ -1980,17 +1981,17 @@ function addTaskPhoto(id) {
       })
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        if (data.success) { showToast('Foto eklendi!'); loadTasks(); }
-        else showToast('Hata: ' + (data.error || ''));
+        if (data.success) { showToast('Photo added!'); loadTasks(); }
+        else showToast('Error: ' + (data.error || ''));
       })
-      .catch(function() { showToast('Baglanti hatasi'); });
+      .catch(function() { showToast('Connection error'); });
     });
   };
   input.click();
 }
 
 function deleteTaskPhotos(id) {
-  if (!confirm('Tum fotograflari silmek istediginize emin misiniz?')) return;
+  if (!confirm('Delete all photos from this task?')) return;
   fetch(SCRIPT_URL, {
     method: 'POST',
     headers: {'Content-Type': 'text/plain'},
@@ -1998,21 +1999,21 @@ function deleteTaskPhotos(id) {
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
-    if (data.success) { showToast('Fotograflar silindi'); loadTasks(); }
-    else showToast('Hata: ' + (data.error || ''));
+    if (data.success) { showToast('Photos removed'); loadTasks(); }
+    else showToast('Error: ' + (data.error || ''));
   })
-  .catch(function() { showToast('Baglanti hatasi'); });
+  .catch(function() { showToast('Connection error'); });
 }
 
 function deleteTask(id) {
-  if (!confirm('Bu taski silmek istediginize emin misiniz?')) return;
+  if (!confirm('Delete this task?')) return;
   fetch(SCRIPT_URL + '?action=task_delete&id=' + id)
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (data.success) { showToast('Task silindi'); loadTasks(); }
-      else showToast('Hata: ' + (data.error || ''));
+      if (data.success) { showToast('Task deleted'); loadTasks(); }
+      else showToast('Error: ' + (data.error || ''));
     })
-    .catch(function() { showToast('Baglanti hatasi'); });
+    .catch(function() { showToast('Connection error'); });
 }
 
 // === BARCODE SCANNER ===
