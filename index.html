@@ -582,6 +582,14 @@ var allProductNames = []; // backward compat for faulty/dn
 var currentStaff = '';
 var currentPin = '';
 var PATTERN_ALLOWED_PINS = ['9999', '7654', '1004'];
+var STORE_MANAGERS = {'Emel':'WAT','Nuray':'GUI','Sabina':'GLO','Mendy':'BRA'};
+var STORE_STAFF = {
+  'WAT': ['Emel','Sachin','Kashan'],
+  'GUI': ['Nuray','Pratika'],
+  'BRA': ['Mendy','Chloe','Pratika'],
+  'GLO': ['Sabina','Akancha'],
+  'STO': ['Kashan']
+};
 
 // PIN → Name mapping (client-side, simple)
 var PIN_MAP = {
@@ -636,7 +644,10 @@ function openModule(id) {
   }
   if (id === 'tasks') {
     document.getElementById('tasksStaffBadge').textContent = 'Logged in as: ' + currentStaff;
-    document.getElementById('taskCreateSection').style.display = (currentPin === '9999') ? 'block' : 'none';
+    var isOwner = (currentPin === '9999');
+    var isManager = !!STORE_MANAGERS[currentStaff];
+    document.getElementById('taskCreateSection').style.display = (isOwner || isManager) ? 'block' : 'none';
+    setupTaskCreateForm(isOwner);
     loadTasks();
   }
   if (id === 'patternCatalog') {
@@ -1095,6 +1106,36 @@ function completeTask(id) {
       }
     })
     .catch(function() { showToast('Connection error'); });
+}
+
+function setupTaskCreateForm(isOwner) {
+  var assignSelect = document.getElementById('taskAssignTo');
+  var storeSelect = document.getElementById('taskStore');
+
+  if (isOwner) {
+    // Mert: full access — tum staff, tum magazalar
+    assignSelect.innerHTML = '<option value="">Select person...</option>' +
+      '<option value="ALL">Everyone in store</option>' +
+      Object.keys(PIN_MAP).map(function(pin) {
+        var name = PIN_MAP[pin];
+        if (name === 'Mert') return '';
+        return '<option value="' + name + '">' + name + '</option>';
+      }).join('');
+    storeSelect.innerHTML = '<option value="">Select store...</option>' +
+      '<option>BRA</option><option>GUI</option><option>GLO</option><option>WAT</option><option>STO</option>';
+    storeSelect.disabled = false;
+  } else {
+    // Manager: kendi magazasi icin, kendi staff'i
+    var store = STORE_MANAGERS[currentStaff];
+    var staff = STORE_STAFF[store] || [];
+    assignSelect.innerHTML = '<option value="">Select person...</option>' +
+      '<option value="ALL">Everyone in store</option>' +
+      staff.map(function(s) {
+        return '<option value="' + s + '">' + s + '</option>';
+      }).join('');
+    storeSelect.innerHTML = '<option value="' + store + '">' + store + '</option>';
+    storeSelect.disabled = true;
+  }
 }
 
 function createTask() {
