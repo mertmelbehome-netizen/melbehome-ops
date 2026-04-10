@@ -1793,6 +1793,7 @@ function renderPatternBrowser() {
       '</div></div>' +
       '<div class="barcode-wrap"><canvas class="browse-bc" data-barcode="' + barcodeNum + '"></canvas></div>' +
       '<button class="print-btn" onclick="printBarcode(\'' + barcodeNum + '\',\'' + p.sku + '\')">Yazdir</button>' +
+      '<button class="print-btn" style="background:#8b5cf6;color:#fff" onclick="addVariantFromBrowse(\'' + p.modelId + '\')">+ Varyant</button>' +
       '</div>';
   }).join('');
 
@@ -1804,6 +1805,32 @@ function renderPatternBrowser() {
       }
     });
   }, 100);
+}
+
+function addVariantFromBrowse(modelId) {
+  // Find any pattern with this modelId to extract model definition
+  var source = allPatterns.find(function(p) { return p.modelId === modelId; });
+  if (!source) { showToast('Model bulunamadi'); return; }
+
+  var beads = source.beads || [];
+  var fixedBeads = beads.filter(function(b) { return b.fixed; });
+  var varBead = beads.find(function(b) { return !b.fixed; });
+
+  if (!varBead) { showToast('Bu model tek desen — degisken slot yok'); return; }
+
+  var varSlot = { type: varBead.type, size: varBead.size };
+
+  // Switch to builder view + Phase 2
+  switchPcView('builder');
+  goToPhase2({
+    group: source.group || 'TAK',
+    category: source.category,
+    categoryName: source.categoryName,
+    fixedBeads: fixedBeads,
+    varSlot: varSlot,
+    skuPrefix: modelId.replace(/-\d{3}$/, ''),
+    reuseModelId: modelId
+  });
 }
 </script>
 </body>
