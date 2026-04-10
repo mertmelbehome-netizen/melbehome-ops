@@ -9,6 +9,7 @@
 <link rel="manifest" href="manifest.json">
 <title>Melbehome Ops</title>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;min-height:100vh}
@@ -234,9 +235,13 @@ textarea{resize:none;height:80px;line-height:1.5}
 
     <label>Product</label>
     <div class="autocomplete-wrap">
-      <input id="product" type="text" placeholder="Search product..." autocomplete="off" oninput="filterProducts()" onfocus="filterProducts()" />
+      <input id="product" type="text" placeholder="Search product or barcode..." autocomplete="off" oninput="filterProducts()" onfocus="filterProducts()" />
       <div class="suggestions" id="suggestions"></div>
     </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="submit-btn" style="flex:1;background:#333;font-size:13px;padding:8px" onclick="startBarcodeScanner()">📷 Barkod Tara</button>
+    </div>
+    <div id="barcodeScannerWrap" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden"></div>
 
     <label>Counted qty</label>
     <div class="qty-wrap">
@@ -572,7 +577,8 @@ textarea{resize:none;height:80px;line-height:1.5}
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyCDXarXuc5b6A-jzBXkoDqwS1Dc78hcFlIiV6OJ7qeeKmLk5TOcS7dpwl4d05yYd0e/exec';
 const CHAT_URL = 'https://script.google.com/macros/s/AKfycbz5ANZn7HBzwwEOdUTSt-pGuWVqASKfUb-AmAJ1Ps1ioI512NjPh9jI-n21jsS6IZvr_w/exec';
 
-var allProducts = [];
+var allProducts = [];    // [{name, barcode}]
+var allProductNames = []; // backward compat for faulty/dn
 var currentStaff = '';
 var currentPin = '';
 var PATTERN_ALLOWED_PINS = ['9999', '7654', '1004'];
@@ -660,27 +666,41 @@ function changeQty(d) {
 function loadProducts() {
   fetch(SCRIPT_URL + '?action=products')
     .then(r => r.json())
-    .then(data => { allProducts = data; })
+    .then(data => {
+      if (Array.isArray(data) && data.length > 0) {
+        if (typeof data[0] === 'object') {
+          allProducts = data;
+        } else {
+          allProducts = data.map(function(n){return {name:n, barcode:''}});
+        }
+        allProductNames = allProducts.map(function(p){return p.name});
+      }
+    })
     .catch(() => {});
 }
 
 function filterProducts() {
-  var val = document.getElementById('product').value.toLowerCase();
+  var val = document.getElementById('product').value.toLowerCase().trim();
   var box = document.getElementById('suggestions');
   if (!allProducts.length) { box.style.display = 'none'; return; }
   var filtered = val
-    ? allProducts.filter(p => p.toLowerCase().indexOf(val) !== -1)
+    ? allProducts.filter(function(p) {
+        return p.name.toLowerCase().indexOf(val) !== -1 ||
+               (p.barcode && p.barcode.toLowerCase().indexOf(val) !== -1);
+      })
     : allProducts;
   if (!filtered.length) { box.style.display = 'none'; return; }
-  box.innerHTML = filtered.slice(0, 40).map(p =>
-    '<div class="suggestion-item" onclick="selectProduct(\'' + p.replace(/'/g, "\\'") + '\')">' + p + '</div>'
-  ).join('');
+  box.innerHTML = filtered.slice(0, 40).map(function(p) {
+    var label = p.barcode ? p.name + ' <span style="color:#888;font-size:11px">(' + p.barcode + ')</span>' : p.name;
+    return '<div class="suggestion-item" onclick="selectProduct(\'' + p.name.replace(/'/g, "\\'") + '\')">' + label + '</div>';
+  }).join('');
   box.style.display = 'block';
 }
 
 function selectProduct(name) {
   document.getElementById('product').value = name;
   document.getElementById('suggestions').style.display = 'none';
+  stopBarcodeScanner();
   document.getElementById('qty').focus();
 }
 
@@ -738,7 +758,17 @@ function ensureProducts(cb) {
   if (allProducts.length) { if (cb) cb(); return; }
   fetch(SCRIPT_URL + '?action=products')
     .then(function(r) { return r.json(); })
-    .then(function(data) { allProducts = data; if (cb) cb(); })
+    .then(function(data) {
+      if (Array.isArray(data) && data.length > 0) {
+        if (typeof data[0] === 'object') {
+          allProducts = data;
+        } else {
+          allProducts = data.map(function(n){return {name:n, barcode:''}});
+        }
+        allProductNames = allProducts.map(function(p){return p.name});
+      }
+      if (cb) cb();
+    })
     .catch(function() {});
 }
 
@@ -748,8 +778,8 @@ var faultyList = [];
 function filterFaultyProducts() {
   var val = document.getElementById('faultyProduct').value.toLowerCase();
   var box = document.getElementById('faultySuggestions');
-  if (!allProducts.length) { box.style.display = 'none'; return; }
-  var filtered = val ? allProducts.filter(function(p) { return p.toLowerCase().indexOf(val) !== -1; }) : allProducts;
+  if (!allProductNames.length) { box.style.display = 'none'; return; }
+  var filtered = val ? allProductNames.filter(function(p) { return p.toLowerCase().indexOf(val) !== -1; }) : allProductNames;
   if (!filtered.length) { box.style.display = 'none'; return; }
   box.innerHTML = filtered.slice(0, 40).map(function(p) {
     return '<div class="suggestion-item" onclick="document.getElementById(\'faultyProduct\').value=\'' + p.replace(/'/g, "\\'") + '\';document.getElementById(\'faultySuggestions\').style.display=\'none\'">' + p + '</div>';
@@ -840,8 +870,8 @@ var dnList = [];
 function filterDnProducts() {
   var val = document.getElementById('dnProduct').value.toLowerCase();
   var box = document.getElementById('dnSuggestions');
-  if (!allProducts.length) { box.style.display = 'none'; return; }
-  var filtered = val ? allProducts.filter(function(p) { return p.toLowerCase().indexOf(val) !== -1; }) : allProducts;
+  if (!allProductNames.length) { box.style.display = 'none'; return; }
+  var filtered = val ? allProductNames.filter(function(p) { return p.toLowerCase().indexOf(val) !== -1; }) : allProductNames;
   if (!filtered.length) { box.style.display = 'none'; return; }
   box.innerHTML = filtered.slice(0, 40).map(function(p) {
     return '<div class="suggestion-item" onclick="document.getElementById(\'dnProduct\').value=\'' + p.replace(/'/g, "\\'") + '\';document.getElementById(\'dnSuggestions\').style.display=\'none\'">' + p + '</div>';
@@ -1805,6 +1835,54 @@ function renderPatternBrowser() {
       }
     });
   }, 100);
+}
+
+// === BARCODE SCANNER ===
+var barcodeScanner = null;
+
+function startBarcodeScanner() {
+  var wrap = document.getElementById('barcodeScannerWrap');
+  if (barcodeScanner) { stopBarcodeScanner(); return; }
+  wrap.style.display = 'block';
+  wrap.innerHTML = '<div id="barcodeScannerView" style="width:100%"></div>';
+
+  barcodeScanner = new Html5Qrcode('barcodeScannerView');
+  barcodeScanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 250, height: 100 }, formatsToSupport: [
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E
+    ]},
+    function onScanSuccess(decodedText) {
+      var match = allProducts.find(function(p) { return p.barcode === decodedText; });
+      if (match) {
+        selectProduct(match.name);
+        showToast('Bulundu: ' + match.name);
+      } else {
+        document.getElementById('product').value = decodedText;
+        filterProducts();
+        showToast('Barkod: ' + decodedText + ' — urun listede yok');
+      }
+      stopBarcodeScanner();
+    },
+    function onScanFailure() {}
+  ).catch(function(err) {
+    wrap.innerHTML = '<div style="text-align:center;color:#c00;padding:1rem;font-size:13px">Kamera acilamadi: ' + err + '</div>';
+  });
+}
+
+function stopBarcodeScanner() {
+  var wrap = document.getElementById('barcodeScannerWrap');
+  if (barcodeScanner) {
+    try { barcodeScanner.stop(); } catch(e) {}
+    barcodeScanner = null;
+  }
+  wrap.style.display = 'none';
+  wrap.innerHTML = '';
 }
 
 function addVariantFromBrowse(modelId) {
