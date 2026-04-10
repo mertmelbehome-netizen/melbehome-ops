@@ -208,6 +208,10 @@ textarea{resize:none;height:80px;line-height:1.5}
         <div class="module-icon">💬</div>
         <h3>Training</h3>
       </div>
+      <div class="module-card-mini" onclick="openModule('notes')">
+        <div class="module-icon">📝</div>
+        <h3>Notes</h3>
+      </div>
       <div class="module-card-mini" id="patternCatalogCard" style="display:none" onclick="openModule('patternCatalog')">
         <div class="module-icon">💎</div>
         <h3>Patterns</h3>
@@ -391,6 +395,42 @@ textarea{resize:none;height:80px;line-height:1.5}
 
   <div class="list-count" id="taskCount">0 tasks</div>
   <div id="taskListContainer"></div>
+</div>
+
+<!-- NOTES MODULE -->
+<div id="notes" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <h2>Notes</h2>
+  </div>
+  <div id="notesStaffBadge" class="staff-badge"></div>
+
+  <!-- Create / Edit form -->
+  <div id="noteFormSection">
+    <div class="card">
+      <input type="hidden" id="noteEditId" value="" />
+      <label>Store</label>
+      <select id="noteStore">
+        <option value="">Select store...</option>
+        <option>BRA</option><option>GUI</option><option>GLO</option><option>WAT</option><option>STO</option>
+      </select>
+      <label>Title</label>
+      <input id="noteTitle" type="text" placeholder="Not basligi..." />
+      <label>Content</label>
+      <textarea id="noteContent" rows="4" placeholder="Not icerigi..."></textarea>
+      <div class="photo-area">
+        <label class="photo-btn" for="notePhotoInput">📷 Fotograf Ekle</label>
+        <input type="file" id="notePhotoInput" accept="image/*" capture="environment" style="display:none" onchange="handleNotePhoto(this)" />
+        <div id="notePhotoPreview"></div>
+      </div>
+      <button class="submit-btn" id="noteSaveBtn" onclick="saveNote()">Kaydet</button>
+      <button class="submit-btn" id="noteCancelBtn" style="display:none;background:#fff;color:#111;border:1px solid #e0e0e0;margin-top:6px" onclick="cancelNoteEdit()">Vazgec</button>
+    </div>
+  </div>
+
+  <!-- Note list -->
+  <div class="list-count" id="noteCount">0 not</div>
+  <div id="noteListContainer"></div>
 </div>
 
 <div id="chat" class="screen">
@@ -649,6 +689,11 @@ function openModule(id) {
     document.getElementById('taskCreateSection').style.display = (isOwner || isManager) ? 'block' : 'none';
     setupTaskCreateForm(isOwner);
     loadTasks();
+  }
+  if (id === 'notes') {
+    document.getElementById('notesStaffBadge').textContent = 'Logged in as: ' + currentStaff;
+    setupNoteForm();
+    loadNotes();
   }
   if (id === 'patternCatalog') {
     document.getElementById('pcStaffBadge').textContent = 'Logged in as: ' + currentStaff;
@@ -1876,6 +1921,210 @@ function renderPatternBrowser() {
       }
     });
   }, 100);
+}
+
+// === NOTES ===
+var allNotes = [];
+var notePhotoData = null;
+
+function setupNoteForm() {
+  var storeSelect = document.getElementById('noteStore');
+  var isOwner = (currentPin === '9999');
+  var managedStore = STORE_MANAGERS[currentStaff] || null;
+  if (!isOwner && managedStore) {
+    storeSelect.innerHTML = '<option value="' + managedStore + '">' + managedStore + '</option>';
+    storeSelect.disabled = true;
+  } else if (!isOwner) {
+    storeSelect.disabled = false;
+  }
+}
+
+function handleNotePhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    notePhotoData = e.target.result;
+    document.getElementById('notePhotoPreview').innerHTML =
+      '<img src="' + notePhotoData + '" style="max-width:100%;border-radius:8px;margin-top:8px" />' +
+      '<button class="submit-btn" style="background:#c00;margin-top:4px;font-size:12px;padding:6px" onclick="removeNotePhoto()">Fotografi Kaldir</button>';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function removeNotePhoto() {
+  notePhotoData = null;
+  document.getElementById('notePhotoPreview').innerHTML = '';
+  document.getElementById('notePhotoInput').value = '';
+}
+
+function loadNotes() {
+  fetch(SCRIPT_URL + '?action=note_list&staff=' + encodeURIComponent(currentStaff) + '&pin=' + currentPin)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        allNotes = data.notes || [];
+        renderNotes();
+      }
+    })
+    .catch(function() { showToast('Not listesi yuklenemedi'); });
+}
+
+function renderNotes() {
+  var container = document.getElementById('noteListContainer');
+  var count = document.getElementById('noteCount');
+  count.textContent = allNotes.length + ' not';
+
+  if (allNotes.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:#888;padding:2rem;font-size:14px">Henuz not yok</div>';
+    return;
+  }
+
+  container.innerHTML = allNotes.sort(function(a,b){return b.id - a.id}).map(function(n) {
+    var photos = (n.photoURL || '').split(',').filter(function(u){return u});
+    var photoHtml = photos.map(function(url) {
+      var fullUrl = url.replace('sz=w400','sz=w800');
+      return '<img src="' + url + '" onclick="zoomPhoto(\'' + fullUrl + '\')" style="max-width:100%;border-radius:6px;margin-top:6px;cursor:pointer" />';
+    }).join('');
+
+    return '<div class="card" style="margin-bottom:12px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center">' +
+      '<strong style="font-size:15px">' + n.title + '</strong>' +
+      '<span style="font-size:11px;color:#888">' + n.store + '</span>' +
+      '</div>' +
+      (n.content ? '<div style="font-size:13px;color:#444;margin-top:6px;white-space:pre-wrap">' + n.content + '</div>' : '') +
+      photoHtml +
+      '<div style="font-size:11px;color:#aaa;margin-top:8px">' + n.staff + ' — ' + n.createdDate +
+      (n.updatedDate !== n.createdDate ? ' (guncellendi: ' + n.updatedDate + ')' : '') + '</div>' +
+      '<div style="display:flex;gap:8px;margin-top:8px">' +
+      '<button class="submit-btn" style="flex:1;background:#333;font-size:12px;padding:6px" onclick="editNote(' + n.id + ')">Duzenle</button>' +
+      '<button class="submit-btn" style="flex:1;background:#c00;font-size:12px;padding:6px" onclick="deleteNote(' + n.id + ')">Sil</button>' +
+      '<button class="submit-btn" style="flex:1;background:#8b5cf6;font-size:12px;padding:6px" onclick="addPhotoToNote(' + n.id + ')">📷 Foto Ekle</button>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function saveNote() {
+  var editId = document.getElementById('noteEditId').value;
+  var store = document.getElementById('noteStore').value;
+  var title = document.getElementById('noteTitle').value.trim();
+  var content = document.getElementById('noteContent').value.trim();
+
+  if (!title) { showToast('Baslik gir'); return; }
+  if (!store) { showToast('Magaza sec'); return; }
+
+  var btn = document.getElementById('noteSaveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Kaydediliyor...';
+
+  var payload = {
+    action: editId ? 'note_update' : 'note_create',
+    staff: currentStaff,
+    store: store,
+    title: title,
+    content: content
+  };
+  if (editId) payload.id = parseInt(editId);
+  if (notePhotoData) payload.photo = notePhotoData;
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain'},
+    body: JSON.stringify(payload)
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      showToast(editId ? 'Not guncellendi!' : 'Not olusturuldu!');
+      cancelNoteEdit();
+      loadNotes();
+    } else {
+      showToast('Hata: ' + (data.error || 'tekrar dene'));
+    }
+    btn.disabled = false;
+    btn.textContent = 'Kaydet';
+  })
+  .catch(function() {
+    showToast('Baglanti hatasi');
+    btn.disabled = false;
+    btn.textContent = 'Kaydet';
+  });
+}
+
+function editNote(id) {
+  var note = allNotes.find(function(n) { return n.id === id; });
+  if (!note) return;
+  document.getElementById('noteEditId').value = id;
+  document.getElementById('noteStore').value = note.store;
+  document.getElementById('noteTitle').value = note.title;
+  document.getElementById('noteContent').value = note.content || '';
+  document.getElementById('noteSaveBtn').textContent = 'Guncelle';
+  document.getElementById('noteCancelBtn').style.display = 'block';
+  notePhotoData = null;
+  document.getElementById('notePhotoPreview').innerHTML = '';
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function cancelNoteEdit() {
+  document.getElementById('noteEditId').value = '';
+  document.getElementById('noteStore').value = '';
+  document.getElementById('noteTitle').value = '';
+  document.getElementById('noteContent').value = '';
+  document.getElementById('noteSaveBtn').textContent = 'Kaydet';
+  document.getElementById('noteCancelBtn').style.display = 'none';
+  notePhotoData = null;
+  document.getElementById('notePhotoPreview').innerHTML = '';
+  document.getElementById('notePhotoInput').value = '';
+}
+
+function deleteNote(id) {
+  if (!confirm('Bu notu silmek istediginize emin misiniz?')) return;
+  fetch(SCRIPT_URL + '?action=note_delete&id=' + id)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        showToast('Not silindi');
+        loadNotes();
+      } else {
+        showToast('Hata: ' + (data.error || ''));
+      }
+    })
+    .catch(function() { showToast('Baglanti hatasi'); });
+}
+
+function addPhotoToNote(id) {
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment';
+  input.onchange = function() {
+    if (!input.files || !input.files[0]) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      showToast('Foto yukleniyor...');
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: {'Content-Type': 'text/plain'},
+        body: JSON.stringify({
+          action: 'note_update',
+          id: id,
+          photo: e.target.result
+        })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.success) {
+          showToast('Foto eklendi!');
+          loadNotes();
+        } else {
+          showToast('Hata: ' + (data.error || ''));
+        }
+      })
+      .catch(function() { showToast('Baglanti hatasi'); });
+    };
+    reader.readAsDataURL(input.files[0]);
+  };
+  input.click();
 }
 
 // === BARCODE SCANNER ===
