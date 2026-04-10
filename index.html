@@ -1093,10 +1093,10 @@ function renderTasks() {
       : '<button class="task-check" onclick="completeTask(' + t.id + ')">✓</button>';
     var noteHtml = t.note ? '<div style="font-size:12px;color:#555;margin-top:6px;padding:6px 8px;background:#f9f9f9;border-radius:6px;white-space:pre-wrap">' + t.note + '</div>' : '';
     var photos = (t.photoURL || '').split(',').filter(function(u){return u});
-    var photoHtml = photos.map(function(url) {
+    var photoHtml = photos.length ? '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">' + photos.map(function(url) {
       var fullUrl = url.replace('sz=w400','sz=w800');
-      return '<img src="' + url + '" onclick="zoomPhoto(\'' + fullUrl + '\')" style="max-width:100%;border-radius:6px;margin-top:6px;cursor:pointer" />';
-    }).join('');
+      return '<img src="' + url + '" onclick="zoomPhoto(\'' + fullUrl + '\')" style="width:60px;height:60px;object-fit:cover;border-radius:6px;cursor:pointer" />';
+    }).join('') + '</div>' : '';
     var hasPhotos = photos.length > 0;
     var actionBtns = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">' +
       (isDone ? '' : '<button style="flex:1;font-size:11px;padding:5px;background:#333;color:#fff;border:none;border-radius:6px;cursor:pointer" onclick="editTask(' + t.id + ')">Duzenle</button>') +
