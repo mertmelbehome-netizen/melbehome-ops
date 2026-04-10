@@ -1305,8 +1305,8 @@ function getFixedBeads() {
     var size = selects[1].value;
     var color = selects[2].value;
     var charmModel = selects[3] ? selects[3].value : '';
-    if (type && size && color) {
-      var bead = {type:type, size:size, color:color, fixed:true};
+    if (type && color && (size || type === 'CH')) {
+      var bead = {type:type, size:size || 'NS', color:color, fixed:true};
       if (type === 'CH' && charmModel) bead.charmModel = charmModel;
       beads.push(bead);
     }
