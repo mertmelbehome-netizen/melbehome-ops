@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Melbe TOTP</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300..800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #1a1a1a;
+  --bg-elevated: #242424;
+  --card: #2a2a2a;
+  --border: #3a3a3a;
+  --text: #f0ece8;
+  --text-secondary: #a09588;
+  --text-muted: #6b6259;
+  --primary: #b35c3a;
+  --primary-hover: #c96b47;
+  --primary-light: rgba(179,92,58,0.15);
+  --accent: #4a9aba;
+  --accent-dark: #1a3a4a;
+  --red: #b83a3a;
+  --green: #2d7a4a;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Registration Screen ── */
+.screen { display: none; width: 100%; max-width: 420px; padding: 2rem; }
+.screen.active { display: block; }
+
+.reg-logo {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.reg-logo h1 {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.03em;
+}
+.reg-logo p {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.form-group { margin-bottom: 1.25rem; }
+.form-group label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.form-group select,
+.form-group input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-group select:focus,
+.form-group input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+.form-group input[type="password"] {
+  font-family: var(--font-mono);
+  letter-spacing: 0.15em;
+}
+
+.btn-register {
+  width: 100%;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  color: #fff;
+  background: var(--primary);
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: background 0.15s;
+}
+.btn-register:hover { background: var(--primary-hover); }
+.btn-register:active { transform: scale(0.98); }
+
+.error-msg {
+  color: var(--red);
+  font-size: 13px;
+  text-align: center;
+  margin-top: 12px;
+  min-height: 18px;
+}
+
+/* ── TOTP Display Screen ── */
+.totp-container {
+  text-align: center;
+  width: 100%;
+  max-width: 600px;
+  padding: 2rem;
+}
+
+.store-badge {
+  display: inline-block;
+  background: var(--accent-dark);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
+}
+
+.totp-code {
+  font-family: var(--font-mono);
+  font-size: clamp(64px, 14vw, 120px);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.08em;
+  line-height: 1;
+  margin-bottom: 2rem;
+  user-select: none;
+  transition: opacity 0.3s;
+}
+.totp-code.fading { opacity: 0.3; }
+
+.timer-section {
+  margin-bottom: 2rem;
+}
+.timer-bar-track {
+  width: 100%;
+  height: 6px;
+  background: var(--card);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.timer-bar-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 3px;
+  transition: width 1s linear, background 0.5s;
+}
+.timer-bar-fill.urgent {
+  background: var(--red);
+}
+.timer-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.timer-text span {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.totp-footer {
+  margin-top: 2rem;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.totp-footer .brand {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.btn-deregister {
+  margin-top: 2rem;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.btn-deregister:hover {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+/* ── Access Denied ── */
+.denied-container {
+  text-align: center;
+  padding: 2rem;
+}
+.denied-icon {
+  font-size: 48px;
+  margin-bottom: 1rem;
+}
+.denied-container h2 {
+  color: var(--red);
+  font-size: 20px;
+  margin-bottom: 0.5rem;
+}
+.denied-container p {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<!-- Registration Screen -->
+<div id="screen-register" class="screen">
+  <div class="reg-logo">
+    <h1>Melbe Home TOTP</h1>
+    <p>Device Registration</p>
+  </div>
+  <div class="form-group">
+    <label>Store</label>
+    <select id="reg-store">
+      <option value="">Select store...</option>
+      <option value="WAT">Watford</option>
+      <option value="GUI">Guildford</option>
+      <option value="BRA">Bracknell</option>
+      <option value="GLO">Gloucester</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label>Manager PIN</label>
+    <input type="password" id="reg-pin" maxlength="4" inputmode="numeric" placeholder="4-digit PIN">
+  </div>
+  <button class="btn-register" id="btn-register">Register This Device</button>
+  <div class="error-msg" id="reg-error"></div>
+</div>
+
+<!-- TOTP Display Screen -->
+<div id="screen-totp" class="screen">
+  <div class="totp-container">
+    <div class="store-badge" id="store-badge"></div>
+    <div class="totp-code" id="totp-code">--- ---</div>
+    <div class="timer-section">
+      <div class="timer-bar-track">
+        <div class="timer-bar-fill" id="timer-bar"></div>
+      </div>
+      <div class="timer-text">Next code in <span id="timer-seconds">60</span>s</div>
+    </div>
+    <div class="totp-footer">
+      <span class="brand">Melbe Home</span> Clock-in Code
+    </div>
+    <button class="btn-deregister" id="btn-deregister">Deregister Device</button>
+  </div>
+</div>
+
+<!-- Access Denied Screen -->
+<div id="screen-denied" class="screen">
+  <div class="denied-container">
+    <div class="denied-icon">&#128274;</div>
+    <h2>Access Denied</h2>
+    <p>This device is not registered.<br>Please contact a manager to set up this terminal.</p>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── Store secrets (Base32-encoded) ──
+  var STORE_SECRETS = {
+    WAT: 'JBSWY3DPEHPK3PXP4WATMELBE',
+    GUI: 'JBSWY3DPEHPK3PXP4GUIMELBE',
+    BRA: 'JBSWY3DPEHPK3PXP4BRAMELBE',
+    GLO: 'JBSWY3DPEHPK3PXP4GLOMELBE'
+  };
+
+  var STORE_NAMES = {
+    WAT: 'Watford',
+    GUI: 'Guildford',
+    BRA: 'Bracknell',
+    GLO: 'Gloucester'
+  };
+
+  var MANAGER_PIN = '9999';
+  var PERIOD = 60;
+  var DIGITS = 6;
+
+  // ── Base32 decode ──
+  function base32Decode(input) {
+    var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    var cleanInput = input.replace(/[=\s]/g, '').toUpperCase();
+    var bits = '';
+    for (var i = 0; i < cleanInput.length; i++) {
+      var val = alphabet.indexOf(cleanInput[i]);
+      if (val === -1) continue;
+      bits += ('00000' + val.toString(2)).slice(-5);
+    }
+    var bytes = new Uint8Array(Math.floor(bits.length / 8));
+    for (var j = 0; j < bytes.length; j++) {
+      bytes[j] = parseInt(bits.substr(j * 8, 8), 2);
+    }
+    return bytes;
+  }
+
+  // ── HMAC-SHA256 via Web Crypto ──
+  async function hmacSha256(keyBytes, messageBytes) {
+    var cryptoKey = await crypto.subtle.importKey(
+      'raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    var sig = await crypto.subtle.sign('HMAC', cryptoKey, messageBytes);
+    return new Uint8Array(sig);
+  }
+
+  // ── TOTP generation ──
+  async function generateTOTP(secretBase32) {
+    var key = base32Decode(secretBase32);
+    var epoch = Math.floor(Date.now() / 1000);
+    var counter = Math.floor(epoch / PERIOD);
+
+    // Convert counter to 8-byte big-endian
+    var counterBytes = new Uint8Array(8);
+    var temp = counter;
+    for (var i = 7; i >= 0; i--) {
+      counterBytes[i] = temp & 0xff;
+      temp = Math.floor(temp / 256);
+    }
+
+    var hmac = await hmacSha256(key, counterBytes);
+
+    // Dynamic truncation
+    var offset = hmac[hmac.length - 1] & 0x0f;
+    var binary =
+      ((hmac[offset] & 0x7f) << 24) |
+      ((hmac[offset + 1] & 0xff) << 16) |
+      ((hmac[offset + 2] & 0xff) << 8) |
+      (hmac[offset + 3] & 0xff);
+
+    var otp = (binary % Math.pow(10, DIGITS)).toString();
+    while (otp.length < DIGITS) otp = '0' + otp;
+    return otp;
+  }
+
+  // ── Format code as "123 456" ──
+  function formatCode(code) {
+    return code.substring(0, 3) + '\u2003' + code.substring(3);
+  }
+
+  // ── Screen management ──
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(function(s) {
+      s.classList.remove('active');
+    });
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ── UUID generator ──
+  function generateUUID() {
+    if (crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = (Math.random() * 16) | 0;
+      var v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
+  // ── Registration ──
+  var regBtn = document.getElementById('btn-register');
+  var regError = document.getElementById('reg-error');
+
+  regBtn.addEventListener('click', function() {
+    var store = document.getElementById('reg-store').value;
+    var pin = document.getElementById('reg-pin').value;
+
+    regError.textContent = '';
+
+    if (!store) {
+      regError.textContent = 'Please select a store.';
+      return;
+    }
+    if (pin !== MANAGER_PIN) {
+      regError.textContent = 'Invalid PIN.';
+      return;
+    }
+
+    var token = generateUUID();
+    localStorage.setItem('melbe_totp_token', token);
+    localStorage.setItem('melbe_totp_store', store);
+
+    startTOTP(store);
+  });
+
+  // ── Deregister ──
+  document.getElementById('btn-deregister').addEventListener('click', function() {
+    if (confirm('Deregister this device? The TOTP code will stop showing.')) {
+      localStorage.removeItem('melbe_totp_token');
+      localStorage.removeItem('melbe_totp_store');
+      showScreen('screen-denied');
+      if (totpInterval) clearInterval(totpInterval);
+    }
+  });
+
+  // ── TOTP display loop ──
+  var totpInterval = null;
+  var lastCode = '';
+
+  function startTOTP(storeCode) {
+    var secret = STORE_SECRETS[storeCode];
+    if (!secret) {
+      showScreen('screen-denied');
+      return;
+    }
+
+    showScreen('screen-totp');
+    document.getElementById('store-badge').textContent =
+      storeCode + ' \u2014 ' + STORE_NAMES[storeCode];
+
+    var codeEl = document.getElementById('totp-code');
+    var barEl = document.getElementById('timer-bar');
+    var secondsEl = document.getElementById('timer-seconds');
+
+    async function update() {
+      var now = Math.floor(Date.now() / 1000);
+      var elapsed = now % PERIOD;
+      var remaining = PERIOD - elapsed;
+      var pct = (remaining / PERIOD) * 100;
+
+      // Update timer
+      barEl.style.width = pct + '%';
+      if (remaining <= 10) {
+        barEl.classList.add('urgent');
+      } else {
+        barEl.classList.remove('urgent');
+      }
+      secondsEl.textContent = remaining;
+
+      // Generate code
+      var code = await generateTOTP(secret);
+
+      // Animate on code change
+      if (code !== lastCode) {
+        codeEl.classList.add('fading');
+        setTimeout(function() {
+          codeEl.textContent = formatCode(code);
+          codeEl.classList.remove('fading');
+        }, 150);
+        lastCode = code;
+      }
+    }
+
+    update();
+    totpInterval = setInterval(update, 1000);
+  }
+
+  // ── Init: check registration state ──
+  var token = localStorage.getItem('melbe_totp_token');
+  var store = localStorage.getItem('melbe_totp_store');
+
+  if (token && store && STORE_SECRETS[store]) {
+    startTOTP(store);
+  } else if (!token && !store) {
+    showScreen('screen-register');
+  } else {
+    showScreen('screen-denied');
+  }
+
+})();
+</script>
+</body>
+</html>
