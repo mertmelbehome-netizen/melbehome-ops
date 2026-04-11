@@ -249,8 +249,15 @@ textarea{resize:none;height:80px;line-height:1.5}
     <div class="section-label" id="taskSectionLabel">Today's Tasks</div>
     <div id="homeTaskPreview"></div>
 
-    <div class="section-label">Modules</div>
     <div class="module-grid">
+      <div class="module-card-mini" onclick="openModule('clockInOut')">
+        <div class="module-icon" style="background:var(--green-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <h3>Clock In</h3>
+      </div>
+      <div class="module-card-mini" onclick="openModule('cashRegister')">
+        <div class="module-icon" style="background:var(--amber-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        <h3>Cash Count</h3>
+      </div>
       <div class="module-card-mini" onclick="openModule('stock')">
         <div class="module-icon" style="background:var(--accent-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
         <h3>Stock Count</h3>
@@ -270,14 +277,6 @@ textarea{resize:none;height:80px;line-height:1.5}
       <div class="module-card-mini" id="patternCatalogCard" style="display:none" onclick="openModule('patternCatalog')">
         <div class="module-icon" style="background:var(--purple-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
         <h3>Patterns</h3>
-      </div>
-      <div class="module-card-mini" onclick="openModule('clockInOut')">
-        <div class="module-icon" style="background:var(--green-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-        <h3>Clock In</h3>
-      </div>
-      <div class="module-card-mini" onclick="openModule('cashRegister')">
-        <div class="module-icon" style="background:var(--amber-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-        <h3>Cash Count</h3>
       </div>
     </div>
   </div>
@@ -457,10 +456,23 @@ textarea{resize:none;height:80px;line-height:1.5}
     <button class="tab-btn" onclick="clearDateFilter()" style="white-space:nowrap">All dates</button>
   </div>
   <!-- Filter tabs -->
-  <div style="display:flex;gap:8px;margin-bottom:12px">
+  <div style="display:flex;gap:8px;margin-bottom:8px">
     <button class="tab-btn active" id="tabPending" onclick="filterTasks('pending')">Pending</button>
     <button class="tab-btn" id="tabDone" onclick="filterTasks('done')">Done</button>
     <button class="tab-btn" id="tabAll" onclick="filterTasks('all')">All</button>
+  </div>
+  <!-- Manager filters — Mert only -->
+  <div id="taskManagerFilters" style="display:none;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <select id="taskFilterPerson" onchange="renderTasks()" style="flex:1;padding:8px;font-size:13px">
+      <option value="">All Staff</option>
+      <option>Sachin</option><option>Sabina</option><option>Nuray</option>
+      <option>Mendy</option><option>Emel</option><option>Chloe</option>
+      <option>Pratika</option><option>Akancha</option><option>Kashan</option>
+    </select>
+    <select id="taskFilterStore" onchange="renderTasks()" style="flex:1;padding:8px;font-size:13px">
+      <option value="">All Stores</option>
+      <option>BRA</option><option>GUI</option><option>GLO</option><option>WAT</option><option>STO</option>
+    </select>
   </div>
 
   <div class="list-count" id="taskCount">0 tasks</div>
@@ -497,7 +509,7 @@ textarea{resize:none;height:80px;line-height:1.5}
       <label>Count each denomination</label>
       <div id="closeDenoms"></div>
       <div class="cash-total-bar" id="closeTotal">£0.00</div>
-      <label style="margin-top:16px">Enveloped (for bank)</label>
+      <label style="margin-top:16px">Enveloped</label>
       <input id="cashEnveloped" type="number" inputmode="decimal" step="0.01" value="0" placeholder="0.00" style="font-size:20px;font-weight:700;text-align:center;font-family:var(--font-mono)" onchange="updateCashSummary()" />
       <label>Expenses</label>
       <div id="expenseList"></div>
@@ -803,6 +815,7 @@ function openModule(id) {
     var isOwner = (currentPin === '9999');
     var isManager = !!STORE_MANAGERS[currentStaff];
     document.getElementById('taskCreateSection').style.display = (isOwner || isManager) ? 'block' : 'none';
+    document.getElementById('taskManagerFilters').style.display = isOwner ? 'flex' : 'none';
     setupTaskCreateForm(isOwner);
     loadTasks();
   }
@@ -1261,6 +1274,15 @@ function renderTasks() {
       var dd = String(t.dueDate || ""); if (dd.indexOf("T") !== -1) dd = dd.split("T")[0];
       return dd === dateFilter;
     });
+  }
+  // Manager filters (Mert only)
+  var personFilter = document.getElementById("taskFilterPerson");
+  var storeFilter = document.getElementById("taskFilterStore");
+  if (personFilter && personFilter.value) {
+    filtered = filtered.filter(function(t){return t.assignedTo === personFilter.value});
+  }
+  if (storeFilter && storeFilter.value) {
+    filtered = filtered.filter(function(t){return t.store === storeFilter.value});
   }
   countEl.textContent = filtered.length + " task(s)";
   if (!filtered.length) {
