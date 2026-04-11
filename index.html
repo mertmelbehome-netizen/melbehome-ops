@@ -2022,6 +2022,21 @@ function switchCashView(view) {
   });
   document.getElementById('cashOpening').classList.toggle('active', view === 'opening');
   document.getElementById('cashClosing').classList.toggle('active', view === 'closing');
+  if (view === 'closing') fetchTodayOpening();
+}
+
+function fetchTodayOpening() {
+  var store = document.getElementById('cashStore').value;
+  if (!store) return;
+  fetch(SCRIPT_URL + '?action=cash_get_opening&store=' + store)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success && data.openingTotal !== undefined) {
+        todayOpeningTotal = data.openingTotal;
+        updateCashSummary();
+      }
+    })
+    .catch(function() {});
 }
 
 function renderDenomRows(containerId, prefix) {
