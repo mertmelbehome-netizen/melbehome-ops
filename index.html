@@ -74,7 +74,7 @@ textarea{resize:none;height:80px;line-height:1.5}
 .chat-fab:active{transform:scale(0.92)}
 .chat-fab svg{width:22px;height:22px}
 .chat-fab.open{border-radius:14px;background:var(--text)}
-.chat-panel{display:none;position:fixed;bottom:0;left:0;right:0;height:70vh;background:var(--card);z-index:50;flex-direction:column;overflow:hidden;border-radius:20px 20px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.15)}
+.chat-panel{display:none;position:fixed;inset:0;background:var(--card);z-index:50;flex-direction:column;overflow:hidden}
 .chat-panel.open{display:flex}
 .chat-panel-header{padding:12px 16px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated)}
 .chat-panel-header h3{font-size:14px;font-weight:700;color:var(--text)}
@@ -1275,10 +1275,12 @@ function toggleChat() {
     panel.classList.remove('open');
     fab.classList.remove('open');
     fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>';
+    document.body.style.overflow = '';
   } else {
     panel.classList.add('open');
     fab.classList.add('open');
     fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    document.body.style.overflow = 'hidden';
     document.getElementById('chatInput').focus();
   }
 }
