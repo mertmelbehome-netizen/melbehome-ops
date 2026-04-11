@@ -1543,7 +1543,7 @@ function updateCashSummary() {
   var newFloat = closeTotal - enveloped;
   var expTotal = 0;
   for (var e = 0; e < expenseItems.length; e++) expTotal += expenseItems[e].amount;
-  var cashSales = newFloat - todayOpeningTotal + expTotal;
+  var cashSales = closeTotal - todayOpeningTotal + expTotal;
 
   document.getElementById('summClose').textContent = '£' + closeTotal.toFixed(2);
   document.getElementById('summEnv').textContent = '£' + enveloped.toFixed(2);
@@ -1626,7 +1626,7 @@ function submitCashCount(type) {
     payload.enveloped = enveloped;
     payload.expenses = JSON.stringify(expenseItems.map(function(ex) { return { amount: ex.amount, hasReceipt: !!ex.photo }; }));
     payload.expenseTotal = expTotal;
-    payload.cashSales = (total - enveloped) - todayOpeningTotal + expTotal;
+    payload.cashSales = total - todayOpeningTotal + expTotal;
     // Send expense photos separately if needed
     if (expenseItems.some(function(ex) { return !!ex.photo; })) {
       payload.expensePhotos = JSON.stringify(expenseItems.filter(function(ex) { return !!ex.photo; }).map(function(ex) { return ex.photo; }));
