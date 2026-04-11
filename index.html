@@ -198,6 +198,24 @@ textarea{resize:none;height:80px;line-height:1.5}
 .screen.active{animation:fadeUp 0.2s var(--ease)}
 .task-card{animation:fadeUp 0.15s var(--ease)}
 
+/* Clock In/Out */
+.clock-result{text-align:center;padding:1.5rem;margin-top:1rem}
+.clock-result .clock-time{font-size:48px;font-weight:700;font-family:var(--font-mono);color:var(--text)}
+.clock-result .clock-type{font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-top:4px}
+.clock-type.clock_in{color:var(--green)}
+.clock-type.clock_out{color:var(--red)}
+
+/* Cash Register */
+.denom-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 0;border-bottom:1px solid var(--border-light)}
+.denom-label{font-size:15px;font-weight:600;color:var(--text);width:50px}
+.denom-qty{width:70px;text-align:center;font-size:18px;font-weight:700;font-family:var(--font-mono);padding:8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated)}
+.denom-total{font-size:14px;color:var(--text-secondary);font-family:var(--font-mono);text-align:right;flex:1}
+.denom-btns{display:flex;gap:2px}
+.denom-btn{width:36px;height:36px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-elevated);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text)}
+.denom-btn:active{background:var(--primary-light)}
+.cash-total-bar{position:sticky;bottom:0;background:var(--accent);color:#fff;padding:14px;border-radius:var(--radius-sm);text-align:center;font-family:var(--font-mono);font-size:22px;font-weight:700;margin-top:12px;letter-spacing:1px}
+.expense-item{background:var(--bg-elevated);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
+
 /* Scrollbar styling */
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -252,6 +270,14 @@ textarea{resize:none;height:80px;line-height:1.5}
       <div class="module-card-mini" id="patternCatalogCard" style="display:none" onclick="openModule('patternCatalog')">
         <div class="module-icon" style="background:var(--purple-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
         <h3>Patterns</h3>
+      </div>
+      <div class="module-card-mini" onclick="openModule('clockInOut')">
+        <div class="module-icon" style="background:var(--green-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <h3>Clock In</h3>
+      </div>
+      <div class="module-card-mini" onclick="openModule('cashRegister')">
+        <div class="module-icon" style="background:var(--amber-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+        <h3>Cash Count</h3>
       </div>
     </div>
   </div>
@@ -439,6 +465,85 @@ textarea{resize:none;height:80px;line-height:1.5}
 
   <div class="list-count" id="taskCount">0 tasks</div>
   <div id="taskListContainer"></div>
+</div>
+
+<!-- CASH REGISTER MODULE -->
+<div id="cashRegister" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <h2>Cash Count</h2>
+  </div>
+  <div id="cashStaffBadge" class="staff-badge"></div>
+  <div class="pc-tabs">
+    <div class="pc-tab active" onclick="switchCashView('opening')">Opening</div>
+    <div class="pc-tab" onclick="switchCashView('closing')">Closing</div>
+  </div>
+  <div id="cashOpening" class="pc-view active">
+    <div class="card">
+      <label>Store</label>
+      <select id="cashStore" onchange="updateCashStore()">
+        <option value="">Select store...</option>
+        <option value="WAT">Watford</option><option value="GUI">Guildford</option>
+        <option value="BRA">Bracknell</option><option value="GLO">Gloucester</option>
+      </select>
+      <label style="margin-top:16px">Count each denomination</label>
+      <div id="openDenoms"></div>
+      <div class="cash-total-bar" id="openTotal">£0.00</div>
+      <button class="submit-btn" style="margin-top:12px" onclick="submitCashCount('opening')">Submit Opening Count</button>
+    </div>
+  </div>
+  <div id="cashClosing" class="pc-view">
+    <div class="card">
+      <label>Count each denomination</label>
+      <div id="closeDenoms"></div>
+      <div class="cash-total-bar" id="closeTotal">£0.00</div>
+      <label style="margin-top:16px">Enveloped (for bank)</label>
+      <input id="cashEnveloped" type="number" inputmode="decimal" step="0.01" value="0" placeholder="0.00" style="font-size:20px;font-weight:700;text-align:center;font-family:var(--font-mono)" onchange="updateCashSummary()" />
+      <label>Expenses</label>
+      <div id="expenseList"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <input id="expenseAmount" type="number" inputmode="decimal" step="0.01" placeholder="Amount £" style="flex:1" />
+        <label class="photo-btn" for="expensePhoto" style="margin:0;flex-shrink:0">Receipt</label>
+        <input type="file" id="expensePhoto" accept="image/*" capture="environment" style="display:none" onchange="handleExpensePhoto(this)" />
+      </div>
+      <button class="submit-btn" style="background:var(--amber);margin-top:8px" onclick="addExpense()">+ Add Expense</button>
+      <div class="card" style="background:var(--bg);margin-top:16px;padding:12px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>Closing Total</span><span id="summClose" style="font-weight:700">£0.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>− Enveloped</span><span id="summEnv" style="font-weight:700">£0.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;border-top:1px solid var(--border);padding-top:6px"><span>= New Float</span><span id="summFloat" style="font-weight:700;color:var(--green)">£0.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>Opening Float</span><span id="summOpen" style="font-weight:700">£0.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>+ Expenses</span><span id="summExp" style="font-weight:700">£0.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;border-top:2px solid var(--accent);padding-top:8px"><span>Cash Sales</span><span id="summSales" style="color:var(--primary)">£0.00</span></div>
+      </div>
+      <button class="submit-btn" style="margin-top:12px" onclick="submitCashCount('closing')">Submit Closing Count</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLOCK IN/OUT MODULE -->
+<div id="clockInOut" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <h2>Clock In / Out</h2>
+  </div>
+  <div id="clockStaffBadge" class="staff-badge"></div>
+  <div class="card" style="text-align:center">
+    <label>Store</label>
+    <select id="clockStore">
+      <option value="">Select store...</option>
+      <option value="WAT">Watford</option>
+      <option value="GUI">Guildford</option>
+      <option value="BRA">Bracknell</option>
+      <option value="GLO">Gloucester</option>
+    </select>
+    <label>Enter 6-digit code from store screen</label>
+    <input id="clockCode" type="text" inputmode="numeric" maxlength="6" placeholder="000 000" style="text-align:center;font-size:32px;font-weight:700;letter-spacing:8px;height:64px;font-family:var(--font-mono)" />
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="submit-btn" style="background:var(--green);flex:1" onclick="submitClock('clock_in')">Clock In</button>
+      <button class="submit-btn" style="background:var(--red);flex:1" onclick="submitClock('clock_out')">Clock Out</button>
+    </div>
+  </div>
+  <div id="clockHistory" style="margin-top:1rem"></div>
 </div>
 
 <!-- CHAT FAB + PANEL -->
@@ -705,6 +810,26 @@ function openModule(id) {
     document.getElementById('pcStaffBadge').textContent = 'Logged in as: ' + currentStaff;
     if (pcFixedBeadCount === 0) addFixedBeadRow();
     if (allPatterns.length === 0) loadPatternList();
+  }
+  if (id === 'clockInOut') {
+    document.getElementById('clockStaffBadge').textContent = 'Logged in as: ' + currentStaff;
+    var staffStores = [];
+    for (var s in STORE_STAFF) {
+      if (STORE_STAFF[s].indexOf(currentStaff) !== -1) staffStores.push(s);
+    }
+    if (staffStores.length === 1) document.getElementById('clockStore').value = staffStores[0];
+  }
+  if (id === 'cashRegister') {
+    document.getElementById('cashStaffBadge').textContent = 'Logged in as: ' + currentStaff;
+    if (!document.getElementById('open_0')) {
+      renderDenomRows('openDenoms', 'open');
+      renderDenomRows('closeDenoms', 'close');
+    }
+    var staffStores = [];
+    for (var s in STORE_STAFF) {
+      if (STORE_STAFF[s].indexOf(currentStaff) !== -1) staffStores.push(s);
+    }
+    if (staffStores.length === 1) document.getElementById('cashStore').value = staffStores[0];
   }
 }
 
@@ -1283,6 +1408,203 @@ function toggleChat() {
     document.body.style.overflow = 'hidden';
     document.getElementById('chatInput').focus();
   }
+}
+
+// === CLOCK IN/OUT ===
+function submitClock(type) {
+  var store = document.getElementById('clockStore').value;
+  var code = document.getElementById('clockCode').value.replace(/\s/g, '');
+  if (!store) { showToast('Select a store'); return; }
+  if (!code || code.length !== 6) { showToast('Enter 6-digit code'); return; }
+
+  var params = new URLSearchParams({
+    action: 'clock_verify', staff: currentStaff,
+    store: store, code: code, type: type
+  });
+
+  fetch(SCRIPT_URL + '?' + params.toString())
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        document.getElementById('clockCode').value = '';
+        var label = type === 'clock_in' ? 'Clocked In' : 'Clocked Out';
+        document.getElementById('clockHistory').innerHTML =
+          '<div class="card clock-result"><div class="clock-time">' + data.time + '</div>' +
+          '<div class="clock-type ' + type + '">' + label + '</div></div>';
+        showToast(label + ' at ' + data.time);
+      } else {
+        showToast(data.error || 'Verification failed');
+      }
+    })
+    .catch(function() { showToast('Connection error'); });
+}
+
+// === CASH REGISTER ===
+var DENOMS = [
+  {label:'£50',value:50},{label:'£20',value:20},{label:'£10',value:10},
+  {label:'£5',value:5},{label:'£2',value:2},{label:'£1',value:1},{label:'50p',value:0.5}
+];
+var expenseItems = [];
+var expensePhotoData = null;
+var todayOpeningTotal = 0;
+
+function switchCashView(view) {
+  document.querySelectorAll('#cashRegister .pc-tab').forEach(function(t, i) {
+    t.classList.toggle('active', (view === 'opening' && i === 0) || (view === 'closing' && i === 1));
+  });
+  document.getElementById('cashOpening').classList.toggle('active', view === 'opening');
+  document.getElementById('cashClosing').classList.toggle('active', view === 'closing');
+}
+
+function renderDenomRows(containerId, prefix) {
+  var html = '';
+  for (var i = 0; i < DENOMS.length; i++) {
+    html += '<div class="denom-row">' +
+      '<span class="denom-label">' + DENOMS[i].label + '</span>' +
+      '<div class="denom-btns"><button class="denom-btn" onclick="changeDenom(\'' + prefix + '\',' + i + ',-1)">−</button></div>' +
+      '<input class="denom-qty" id="' + prefix + '_' + i + '" type="number" inputmode="numeric" value="0" min="0" onchange="updateDenomTotal(\'' + prefix + '\')" />' +
+      '<div class="denom-btns"><button class="denom-btn" onclick="changeDenom(\'' + prefix + '\',' + i + ',1)">+</button></div>' +
+      '<span class="denom-total" id="' + prefix + '_t' + i + '">£0.00</span>' +
+      '</div>';
+  }
+  document.getElementById(containerId).innerHTML = html;
+}
+
+function changeDenom(prefix, idx, delta) {
+  var el = document.getElementById(prefix + '_' + idx);
+  var val = parseInt(el.value) || 0;
+  val = Math.max(0, val + delta);
+  el.value = val;
+  updateDenomTotal(prefix);
+}
+
+function updateDenomTotal(prefix) {
+  var total = 0;
+  for (var i = 0; i < DENOMS.length; i++) {
+    var qty = parseInt(document.getElementById(prefix + '_' + i).value) || 0;
+    var lineTotal = qty * DENOMS[i].value;
+    document.getElementById(prefix + '_t' + i).textContent = '£' + lineTotal.toFixed(2);
+    total += lineTotal;
+  }
+  var totalId = prefix === 'open' ? 'openTotal' : 'closeTotal';
+  document.getElementById(totalId).textContent = '£' + total.toFixed(2);
+  if (prefix === 'close') updateCashSummary();
+}
+
+function updateCashSummary() {
+  var closeTotal = 0;
+  for (var i = 0; i < DENOMS.length; i++) {
+    var el = document.getElementById('close_' + i);
+    if (el) closeTotal += (parseInt(el.value) || 0) * DENOMS[i].value;
+  }
+  var enveloped = parseFloat(document.getElementById('cashEnveloped').value) || 0;
+  var newFloat = closeTotal - enveloped;
+  var expTotal = 0;
+  for (var e = 0; e < expenseItems.length; e++) expTotal += expenseItems[e].amount;
+  var cashSales = newFloat - todayOpeningTotal + expTotal;
+
+  document.getElementById('summClose').textContent = '£' + closeTotal.toFixed(2);
+  document.getElementById('summEnv').textContent = '£' + enveloped.toFixed(2);
+  document.getElementById('summFloat').textContent = '£' + newFloat.toFixed(2);
+  document.getElementById('summOpen').textContent = '£' + todayOpeningTotal.toFixed(2);
+  document.getElementById('summExp').textContent = '£' + expTotal.toFixed(2);
+  document.getElementById('summSales').textContent = '£' + cashSales.toFixed(2);
+}
+
+function handleExpensePhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  compressImage(input.files[0], 800, 0.7, function(compressed) {
+    expensePhotoData = compressed;
+    showToast('Receipt photo attached');
+  });
+}
+
+function addExpense() {
+  var amountEl = document.getElementById('expenseAmount');
+  var amount = parseFloat(amountEl.value);
+  if (!amount || amount <= 0) { showToast('Enter expense amount'); return; }
+  expenseItems.push({ amount: amount, photo: expensePhotoData || null });
+  amountEl.value = '';
+  expensePhotoData = null;
+  document.getElementById('expensePhoto').value = '';
+  renderExpenseList();
+  updateCashSummary();
+}
+
+function removeExpense(idx) {
+  expenseItems.splice(idx, 1);
+  renderExpenseList();
+  updateCashSummary();
+}
+
+function renderExpenseList() {
+  var html = '';
+  for (var i = 0; i < expenseItems.length; i++) {
+    html += '<div class="expense-item"><span>£' + expenseItems[i].amount.toFixed(2) +
+      (expenseItems[i].photo ? ' (receipt)' : '') + '</span>' +
+      '<button style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer" onclick="removeExpense(' + i + ')">✕</button></div>';
+  }
+  document.getElementById('expenseList').innerHTML = html;
+}
+
+function getDenomCounts(prefix) {
+  var counts = {};
+  for (var i = 0; i < DENOMS.length; i++) {
+    counts[DENOMS[i].label] = parseInt(document.getElementById(prefix + '_' + i).value) || 0;
+  }
+  return counts;
+}
+
+function updateCashStore() {
+  // store selection is only on opening tab; closing uses same store
+}
+
+function submitCashCount(type) {
+  var store = document.getElementById('cashStore').value;
+  if (!store) { showToast('Select a store'); return; }
+
+  var prefix = type === 'opening' ? 'open' : 'close';
+  var counts = getDenomCounts(prefix);
+  var total = 0;
+  for (var i = 0; i < DENOMS.length; i++) {
+    total += (parseInt(document.getElementById(prefix + '_' + i).value) || 0) * DENOMS[i].value;
+  }
+
+  var payload = {
+    action: 'cash_count', staff: currentStaff, store: store,
+    type: type, counts: JSON.stringify(counts), total: total
+  };
+
+  if (type === 'opening') {
+    todayOpeningTotal = total;
+  } else {
+    var enveloped = parseFloat(document.getElementById('cashEnveloped').value) || 0;
+    var expTotal = 0;
+    for (var e = 0; e < expenseItems.length; e++) expTotal += expenseItems[e].amount;
+    payload.enveloped = enveloped;
+    payload.expenses = JSON.stringify(expenseItems.map(function(ex) { return { amount: ex.amount, hasReceipt: !!ex.photo }; }));
+    payload.expenseTotal = expTotal;
+    payload.cashSales = (total - enveloped) - todayOpeningTotal + expTotal;
+    // Send expense photos separately if needed
+    if (expenseItems.some(function(ex) { return !!ex.photo; })) {
+      payload.expensePhotos = JSON.stringify(expenseItems.filter(function(ex) { return !!ex.photo; }).map(function(ex) { return ex.photo; }));
+    }
+  }
+
+  var params = new URLSearchParams(payload);
+  fetch(SCRIPT_URL + '?' + params.toString())
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' count submitted: £' + total.toFixed(2));
+        if (type === 'opening') {
+          switchCashView('closing');
+        }
+      } else {
+        showToast(data.error || 'Submit failed');
+      }
+    })
+    .catch(function() { showToast('Connection error'); });
 }
 
 function askQuick(q) {
