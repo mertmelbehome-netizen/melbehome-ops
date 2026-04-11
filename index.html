@@ -1555,9 +1555,10 @@ function updateCashSummary() {
 
 function handleExpensePhoto(input) {
   if (!input.files || !input.files[0]) return;
-  compressImage(input.files[0], 800, 0.7, function(compressed) {
+  compressImage(input.files[0], 1024, 0.5, function(compressed) {
     expensePhotoData = compressed;
-    showToast('Receipt photo attached');
+    var sizeKB = Math.round(compressed.length * 3 / 4 / 1024);
+    showToast('Receipt photo attached (' + sizeKB + ' KB)');
   });
 }
 
