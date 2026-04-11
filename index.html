@@ -2183,12 +2183,38 @@ function submitCashCount(type) {
         showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' count submitted: £' + total.toFixed(2));
         if (type === 'opening') {
           switchCashView('closing');
+        } else {
+          // Closing done — reset and go home
+          resetCashModule();
+          setTimeout(function() { goHome(); }, 1200);
         }
       } else {
         showToast(data.error || 'Submit failed');
       }
     })
     .catch(function() { showToast('Connection error'); });
+}
+
+function resetCashModule() {
+  // Reset all denom inputs
+  for (var i = 0; i < DENOMS.length; i++) {
+    var openEl = document.getElementById('open_' + i);
+    var closeEl = document.getElementById('close_' + i);
+    if (openEl) openEl.value = 0;
+    if (closeEl) closeEl.value = 0;
+    var openT = document.getElementById('open_t' + i);
+    var closeT = document.getElementById('close_t' + i);
+    if (openT) openT.textContent = '£0.00';
+    if (closeT) closeT.textContent = '£0.00';
+  }
+  document.getElementById('openTotal').textContent = '£0.00';
+  document.getElementById('closeTotal').textContent = '£0.00';
+  document.getElementById('cashEnveloped').value = 0;
+  expenseItems = [];
+  document.getElementById('expenseList').innerHTML = '';
+  todayOpeningTotal = 0;
+  updateCashSummary();
+  switchCashView('opening');
 }
 
 function askQuick(q) {
