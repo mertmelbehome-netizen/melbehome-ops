@@ -69,22 +69,30 @@ textarea{resize:none;height:80px;line-height:1.5}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--accent);color:#fff;padding:12px 24px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;opacity:0;transition:all 0.25s var(--ease);pointer-events:none;white-space:nowrap;z-index:999;box-shadow:var(--shadow-md);letter-spacing:0.01em}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-/* Chat module */
-.chat-container{display:flex;flex-direction:column;height:calc(100vh - 80px)}
-.chat-messages{flex:1;overflow-y:auto;padding:0.5rem 0}
-.chat-bubble{max-width:85%;padding:10px 14px;border-radius:16px;margin-bottom:8px;font-size:14px;line-height:1.5;word-wrap:break-word;white-space:pre-wrap}
+/* Chat FAB + Panel */
+.chat-fab{position:fixed;bottom:24px;right:20px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,0.2);z-index:50;display:flex;align-items:center;justify-content:center;transition:all 0.2s var(--ease)}
+.chat-fab:active{transform:scale(0.92)}
+.chat-fab svg{width:22px;height:22px}
+.chat-fab.open{border-radius:14px;background:var(--text)}
+.chat-panel{display:none;position:fixed;bottom:84px;right:12px;left:12px;max-width:420px;height:60vh;background:var(--card);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:50;flex-direction:column;overflow:hidden;border:1px solid var(--border-light)}
+.chat-panel.open{display:flex}
+.chat-panel-header{padding:12px 16px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between;background:var(--bg-elevated)}
+.chat-panel-header h3{font-size:14px;font-weight:700;color:var(--text)}
+.chat-panel-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary);padding:4px}
+.chat-messages{flex:1;overflow-y:auto;padding:12px 16px}
+.chat-bubble{max-width:85%;padding:10px 14px;border-radius:16px;margin-bottom:8px;font-size:13px;line-height:1.5;word-wrap:break-word;white-space:pre-wrap}
 .chat-bubble.user{background:var(--accent);color:#fff;margin-left:auto;border-bottom-right-radius:4px}
-.chat-bubble.assistant{background:var(--card);color:var(--text);margin-right:auto;border:1px solid var(--border);border-bottom-left-radius:4px}
+.chat-bubble.assistant{background:var(--bg);color:var(--text);margin-right:auto;border:1px solid var(--border-light);border-bottom-left-radius:4px}
 .chat-bubble.typing{color:var(--text-muted);font-style:italic;border:1px dashed var(--border);background:var(--bg)}
-.chat-input-wrap{display:flex;gap:8px;padding:8px 0;border-top:1px solid var(--border);background:var(--bg)}
-.chat-input-wrap input{flex:1;padding:12px;font-size:15px;border:1px solid var(--border);border-radius:20px;background:#fff}
-.chat-send-btn{width:44px;height:44px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all var(--duration) var(--ease)}
+.chat-input-wrap{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border-light);background:var(--bg-elevated)}
+.chat-input-wrap input{flex:1;padding:10px 14px;font-size:14px;border:1px solid var(--border);border-radius:20px;background:#fff}
+.chat-send-btn{width:38px;height:38px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all var(--duration) var(--ease)}
 .chat-send-btn:disabled{opacity:0.4}
 .chat-send-btn:active{opacity:0.85}
-.chat-welcome{text-align:center;padding:2rem 1rem;color:var(--text-secondary)}
-.chat-welcome h3{font-size:16px;color:var(--text);margin-bottom:8px}
-.chat-welcome p{font-size:13px;line-height:1.6}
-.quick-q{display:inline-block;background:#fff;border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:13px;color:var(--text);cursor:pointer;margin:4px}
+.chat-welcome{text-align:center;padding:1.5rem 1rem;color:var(--text-secondary)}
+.chat-welcome h3{font-size:14px;color:var(--text);margin-bottom:6px}
+.chat-welcome p{font-size:12px;line-height:1.6}
+.quick-q{display:inline-block;background:#fff;border:1px solid var(--border);border-radius:16px;padding:6px 12px;font-size:12px;color:var(--text);cursor:pointer;margin:3px}
 .quick-q:active{background:var(--primary-light)}
 
 /* Pattern Catalog */
@@ -240,10 +248,6 @@ textarea{resize:none;height:80px;line-height:1.5}
       <div class="module-card-mini" onclick="openModule('tasks')">
         <div class="module-icon" style="background:var(--primary-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
         <h3>All Tasks</h3>
-      </div>
-      <div class="module-card-mini" onclick="openModule('chat')">
-        <div class="module-icon" style="background:var(--green-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
-        <h3>Training</h3>
       </div>
       <div class="module-card-mini" id="patternCatalogCard" style="display:none" onclick="openModule('patternCatalog')">
         <div class="module-icon" style="background:var(--purple-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
@@ -437,27 +441,29 @@ textarea{resize:none;height:80px;line-height:1.5}
   <div id="taskListContainer"></div>
 </div>
 
-<div id="chat" class="screen">
-  <div class="header">
-    <button class="back-btn" onclick="goHome(); chatHistory=[];">←</button>
-    <h2>Training Assistant</h2>
+<!-- CHAT FAB + PANEL -->
+<button class="chat-fab" id="chatFab" style="display:none" onclick="toggleChat()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+</button>
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-panel-header">
+    <h3>Training Assistant</h3>
+    <button class="chat-panel-close" onclick="toggleChat()">×</button>
   </div>
-  <div class="chat-container">
-    <div class="chat-messages" id="chatMessages">
-      <div class="chat-welcome" id="chatWelcome">
-        <h3>Hi! I'm your training assistant</h3>
-        <p>Ask me anything about store procedures, products, returns, POS, opening/closing — I'm here to help.</p>
-        <div style="margin-top:16px">
-          <div class="quick-q" onclick="askQuick('How do I process a return?')">How do I process a return?</div>
-          <div class="quick-q" onclick="askQuick('What are the closing procedures?')">Closing procedures</div>
-          <div class="quick-q" onclick="askQuick('A customer is complaining, what should I do?')">Handle a complaint</div>
-        </div>
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-welcome" id="chatWelcome">
+      <h3>Hi! I'm your training assistant</h3>
+      <p>Ask about procedures, products, returns, POS, opening/closing.</p>
+      <div style="margin-top:12px">
+        <div class="quick-q" onclick="askQuick('How do I process a return?')">Process a return</div>
+        <div class="quick-q" onclick="askQuick('What are the closing procedures?')">Closing procedures</div>
+        <div class="quick-q" onclick="askQuick('A customer is complaining, what should I do?')">Handle complaint</div>
       </div>
     </div>
-    <div class="chat-input-wrap">
-      <input id="chatInput" type="text" placeholder="Type your question..." onkeydown="if(event.key==='Enter')sendChat()" />
-      <button class="chat-send-btn" id="chatSendBtn" onclick="sendChat()">➤</button>
-    </div>
+  </div>
+  <div class="chat-input-wrap">
+    <input id="chatInput" type="text" placeholder="Type your question..." onkeydown="if(event.key==='Enter')sendChat()" />
+    <button class="chat-send-btn" id="chatSendBtn" onclick="sendChat()">➤</button>
   </div>
 </div>
 
@@ -669,6 +675,7 @@ function checkPin() {
     loadHomeTasks();
     document.getElementById('staff').value = currentStaff;
     document.getElementById('patternCatalogCard').style.display = PATTERN_ALLOWED_PINS.includes(pin) ? 'flex' : 'none';
+    document.getElementById('chatFab').style.display = 'flex';
   } else {
     showToast('Wrong PIN');
     document.getElementById('pinInput').value = '';
@@ -1259,6 +1266,22 @@ function createTask() {
 
 // --- Training Assistant Chat ---
 var chatHistory = [];
+
+function toggleChat() {
+  var panel = document.getElementById('chatPanel');
+  var fab = document.getElementById('chatFab');
+  var isOpen = panel.classList.contains('open');
+  if (isOpen) {
+    panel.classList.remove('open');
+    fab.classList.remove('open');
+    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>';
+  } else {
+    panel.classList.add('open');
+    fab.classList.add('open');
+    fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    document.getElementById('chatInput').focus();
+  }
+}
 
 function askQuick(q) {
   document.getElementById('chatInput').value = q;
