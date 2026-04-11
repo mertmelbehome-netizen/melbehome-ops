@@ -1332,10 +1332,13 @@ function renderAcceptItems() {
         '<button style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;text-decoration:underline" onclick="editAcceptItem(' + i + ')">edit</button>' +
         '</div>';
     } else {
-      statusHtml = '<div style="display:flex;gap:8px;margin-top:8px;align-items:center">' +
-        '<input id="accQty_' + i + '" type="number" inputmode="numeric" value="' + item.qty + '" style="width:70px;padding:6px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px" />' +
-        '<input id="accNote_' + i + '" type="text" placeholder="Note (if diff)" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px" />' +
-        '<button class="submit-btn" style="background:var(--green);padding:6px 12px;font-size:13px;margin:0" onclick="confirmAcceptItem(' + i + ')">OK</button>' +
+      statusHtml = '<div style="margin-top:8px">' +
+        '<div style="display:flex;gap:8px;align-items:center">' +
+        '<label style="margin:0;font-size:12px;min-width:65px">Received:</label>' +
+        '<input id="accQty_' + i + '" type="number" inputmode="numeric" value="" placeholder="' + item.qty + '" style="width:80px;padding:8px;border:2px solid var(--border-focus);border-radius:var(--radius-sm);font-size:16px;font-weight:700;text-align:center" />' +
+        '<button class="submit-btn" style="background:var(--green);padding:8px 14px;font-size:13px;margin:0" onclick="confirmAcceptItem(' + i + ')">OK</button>' +
+        '</div>' +
+        '<input id="accNote_' + i + '" type="text" placeholder="Note (optional — explain if different)" style="width:100%;margin-top:6px;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px" />' +
         '</div>';
     }
     html += '<div class="card" style="border-left-color:' + (accepted !== undefined ? 'var(--green)' : 'var(--border)') + '">' +
@@ -1352,7 +1355,8 @@ function renderAcceptItems() {
 }
 
 function confirmAcceptItem(idx) {
-  var qty = parseInt(document.getElementById('accQty_' + idx).value) || 0;
+  var rawVal = document.getElementById('accQty_' + idx).value;
+  var qty = rawVal === '' ? currentAcceptDN.items[idx].qty : (parseInt(rawVal) || 0);
   var note = document.getElementById('accNote_' + idx).value.trim();
   acceptItems[idx] = { qty: qty, note: note };
   renderAcceptItems();
