@@ -244,6 +244,7 @@ textarea{resize:none;height:80px;line-height:1.5}
   <div style="max-width:480px;margin:0 auto;padding:1rem">
     <div class="home-title">Melbe Home Ops</div>
     <div id="homeGreeting" class="home-sub"></div>
+    <div id="homeClockStatus" style="display:none;margin:-0.5rem 0 0.5rem;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600"></div>
     <div class="home-date" id="homeDate"></div>
 
     <div class="section-label" id="taskSectionLabel">Today's Tasks</div>
@@ -839,6 +840,7 @@ function checkPin() {
     var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
     var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     document.getElementById('homeDate').textContent = days[today.getDay()] + ', ' + today.getDate() + ' ' + months[today.getMonth()] + ' ' + today.getFullYear();
+    loadClockStatus();
     loadHomeTasks();
     document.getElementById('staff').value = currentStaff;
     document.getElementById('patternCatalogCard').style.display = PATTERN_ALLOWED_PINS.includes(pin) ? 'flex' : 'none';
@@ -927,6 +929,27 @@ function openModule(id) {
 function goHome() {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('home').classList.add('active');
+  loadClockStatus();
+}
+
+function loadClockStatus() {
+  var el = document.getElementById('homeClockStatus');
+  fetch(SCRIPT_URL + '?action=check_clockin&staff=' + encodeURIComponent(currentStaff))
+    .then(function(r){return r.json()})
+    .then(function(data){
+      if (data.success && data.clockedIn) {
+        el.style.display = 'block';
+        el.style.background = 'var(--green-light)';
+        el.style.color = 'var(--green)';
+        el.innerHTML = '&#128994; Clocked in since ' + data.clockInTime;
+      } else {
+        el.style.display = 'block';
+        el.style.background = 'var(--red-light)';
+        el.style.color = 'var(--red)';
+        el.innerHTML = '&#128308; Not clocked in';
+      }
+    })
+    .catch(function(){ el.style.display = 'none'; });
 }
 
 function showToast(msg) {
