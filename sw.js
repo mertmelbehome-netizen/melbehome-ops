@@ -1,4 +1,4 @@
-const CACHE = 'melbehome-v2';
+const CACHE = 'melbehome-v3';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
