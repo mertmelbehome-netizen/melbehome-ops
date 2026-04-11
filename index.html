@@ -266,9 +266,10 @@ textarea{resize:none;height:80px;line-height:1.5}
         <div class="module-icon" style="background:var(--amber-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
         <h3>Faulty Items</h3>
       </div>
-      <div class="module-card-mini" onclick="openModule('dn')">
+      <div class="module-card-mini" onclick="openModule('dn')" style="position:relative">
         <div class="module-icon" style="background:var(--blue-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
         <h3>Delivery Note</h3>
+        <span id="homeDnBadge" style="display:none;position:absolute;top:8px;right:8px;background:var(--red);color:#fff;border-radius:50%;width:22px;height:22px;font-size:12px;font-weight:700;text-align:center;line-height:22px">0</span>
       </div>
       <div class="module-card-mini" onclick="openModule('tasks')">
         <div class="module-icon" style="background:var(--primary-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
@@ -373,8 +374,16 @@ textarea{resize:none;height:80px;line-height:1.5}
     <button class="back-btn" onclick="goHome(); dnList=[];">←</button>
     <h2>Delivery Note</h2>
   </div>
-  <div id="dnMain">
-    <div id="dnStaffBadge" class="staff-badge"></div>
+  <div id="dnStaffBadge" class="staff-badge"></div>
+
+  <!-- Tab selector -->
+  <div style="display:flex;gap:8px;margin-bottom:1rem">
+    <button class="submit-btn" id="dnTabSend" style="flex:1;background:var(--blue)" onclick="showDnTab('send')">Send</button>
+    <button class="submit-btn" id="dnTabPending" style="flex:1;background:var(--text-muted)" onclick="showDnTab('pending')">Pending <span id="dnPendingBadge" style="background:#fff;color:var(--red);border-radius:50%;padding:0 6px;font-size:12px;font-weight:700;margin-left:4px;display:none">0</span></button>
+  </div>
+
+  <!-- SEND TAB (existing create DN form) -->
+  <div id="dnSendTab">
     <div class="card">
       <label>From</label>
       <select id="dnFrom">
@@ -408,6 +417,28 @@ textarea{resize:none;height:80px;line-height:1.5}
     <div class="list-count" id="dnCount">0 items in list</div>
     <div id="dnListContainer"></div>
     <button class="submit-btn" id="dnSubmitBtn" onclick="submitDnBatch()" style="display:none">Submit All</button>
+  </div>
+
+  <!-- PENDING TAB (receive/accept) -->
+  <div id="dnPendingTab" style="display:none">
+    <div id="dnPendingLoading" style="text-align:center;padding:2rem;color:var(--text-muted)">Loading...</div>
+    <div id="dnPendingList"></div>
+    <div id="dnPendingEmpty" style="display:none;text-align:center;padding:2rem;color:var(--text-muted)">No pending deliveries</div>
+  </div>
+
+  <!-- ACCEPT SCREEN (shown when accepting a specific DN) -->
+  <div id="dnAcceptScreen" style="display:none">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">
+      <button class="back-btn" onclick="showDnTab('pending')">←</button>
+      <h3 style="font-size:15px;color:var(--accent)" id="dnAcceptTitle">DN-260412-001</h3>
+    </div>
+    <div id="dnAcceptInfo" class="card" style="border-left-color:var(--blue)"></div>
+    <div id="dnAcceptItems"></div>
+    <div id="dnAcceptSummary" class="card" style="display:none;border-left-color:var(--green)">
+      <div style="font-weight:700;margin-bottom:8px">Summary</div>
+      <div id="dnAcceptSummaryContent"></div>
+    </div>
+    <button class="submit-btn" id="dnAcceptSubmitBtn" style="background:var(--green);display:none" onclick="submitDnAccept()">Accept Delivery</button>
   </div>
 </div>
 
@@ -809,6 +840,14 @@ function openModule(id) {
   }
   if (id === 'dn') {
     document.getElementById('dnStaffBadge').textContent = 'Logged in as: ' + currentStaff;
+    showDnTab('send');
+    // Pre-fetch pending count
+    var dnStore = getStaffStore();
+    if (currentPin === '9999') dnStore = 'ALL';
+    fetch(SCRIPT_URL + '?action=dn_list_pending&store=' + dnStore + '&staff=' + encodeURIComponent(currentStaff))
+      .then(function(r){return r.json()}).then(function(d){
+        if(d.success && d.pending) updatePendingBadge(d.pending.length);
+      }).catch(function(){});
   }
   if (id === 'tasks') {
     document.getElementById('tasksStaffBadge').textContent = 'Logged in as: ' + currentStaff;
@@ -1176,6 +1215,237 @@ function submitDnBatch() {
       showToast('Connection error');
       btn.disabled = false;
       btn.textContent = 'Submit All';
+    });
+}
+
+// --- DN v2: TABS + PENDING + ACCEPT ---
+var pendingDNs = [];
+var currentAcceptDN = null;
+var acceptItems = {};
+
+function showDnTab(tab) {
+  document.getElementById('dnSendTab').style.display = tab === 'send' ? 'block' : 'none';
+  document.getElementById('dnPendingTab').style.display = tab === 'pending' ? 'block' : 'none';
+  document.getElementById('dnAcceptScreen').style.display = 'none';
+  document.getElementById('dnTabSend').style.background = tab === 'send' ? 'var(--blue)' : 'var(--text-muted)';
+  document.getElementById('dnTabPending').style.background = tab === 'pending' ? 'var(--blue)' : 'var(--text-muted)';
+  if (tab === 'pending') loadPendingDNs();
+}
+
+function getStaffStore() {
+  for (var s in STORE_STAFF) {
+    if (STORE_STAFF[s].indexOf(currentStaff) !== -1) return s;
+  }
+  return '';
+}
+
+function loadPendingDNs() {
+  var store = getStaffStore();
+  if (currentPin === '9999') store = 'ALL';
+  document.getElementById('dnPendingLoading').style.display = 'block';
+  document.getElementById('dnPendingList').innerHTML = '';
+  document.getElementById('dnPendingEmpty').style.display = 'none';
+
+  fetch(SCRIPT_URL + '?action=dn_list_pending&store=' + store + '&staff=' + encodeURIComponent(currentStaff))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      document.getElementById('dnPendingLoading').style.display = 'none';
+      if (!data.success || !data.pending || !data.pending.length) {
+        document.getElementById('dnPendingEmpty').style.display = 'block';
+        updatePendingBadge(0);
+        return;
+      }
+      pendingDNs = data.pending;
+      updatePendingBadge(pendingDNs.length);
+      var html = '';
+      for (var i = 0; i < pendingDNs.length; i++) {
+        var dn = pendingDNs[i];
+        var isSupplier = dn.from.indexOf('SUP:') === 0;
+        var fromLabel = isSupplier ? dn.from.replace('SUP:', '') : dn.from;
+        var statusColor = dn.status === 'draft' ? 'var(--amber)' : 'var(--blue)';
+        var statusLabel = dn.status === 'draft' ? 'Mal Kabul' : 'Transfer';
+        var itemCount = dn.items.length + ' item' + (dn.items.length > 1 ? 's' : '');
+        html += '<div class="card" style="border-left-color:' + statusColor + ';cursor:pointer" onclick="openDnAccept(' + i + ')">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center">' +
+          '<div><div style="font-weight:700;font-size:14px">' + dn.dnId + '</div>' +
+          '<div style="font-size:13px;color:var(--text-secondary)">' + fromLabel + ' → ' + dn.to + '</div>' +
+          '<div style="font-size:12px;color:var(--text-muted)">' + dn.date + ' | ' + itemCount + '</div></div>' +
+          '<div style="background:' + statusColor + ';color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">' + statusLabel + '</div>' +
+          '</div></div>';
+      }
+      document.getElementById('dnPendingList').innerHTML = html;
+    })
+    .catch(function() {
+      document.getElementById('dnPendingLoading').style.display = 'none';
+      showToast('Connection error');
+    });
+}
+
+function updatePendingBadge(count) {
+  var badge = document.getElementById('dnPendingBadge');
+  var homeBadge = document.getElementById('homeDnBadge');
+  if (count > 0) {
+    badge.textContent = count; badge.style.display = 'inline';
+    homeBadge.textContent = count; homeBadge.style.display = 'block';
+  } else {
+    badge.style.display = 'none';
+    homeBadge.style.display = 'none';
+  }
+}
+
+function openDnAccept(idx) {
+  currentAcceptDN = pendingDNs[idx];
+  acceptItems = {};
+  document.getElementById('dnSendTab').style.display = 'none';
+  document.getElementById('dnPendingTab').style.display = 'none';
+  document.getElementById('dnAcceptScreen').style.display = 'block';
+
+  var isSupplier = currentAcceptDN.from.indexOf('SUP:') === 0;
+  var fromLabel = isSupplier ? currentAcceptDN.from.replace('SUP:', '') : currentAcceptDN.from;
+
+  document.getElementById('dnAcceptTitle').textContent = currentAcceptDN.dnId;
+  document.getElementById('dnAcceptInfo').innerHTML =
+    '<div style="font-size:13px"><strong>From:</strong> ' + fromLabel + '</div>' +
+    '<div style="font-size:13px"><strong>To:</strong> ' + currentAcceptDN.to + '</div>' +
+    '<div style="font-size:13px"><strong>Date:</strong> ' + currentAcceptDN.date + '</div>' +
+    '<div style="font-size:13px"><strong>Staff:</strong> ' + currentAcceptDN.staff + '</div>' +
+    (isSupplier ? '<div style="margin-top:8px;padding:6px 10px;background:var(--amber-light);border-radius:6px;font-size:12px;color:var(--amber)">Supplier Goods Receipt</div>' : '') +
+    '<button class="submit-btn" style="background:var(--text-muted);margin-top:10px;font-size:13px" onclick="acceptAllItems()">Accept All (no changes)</button>';
+
+  renderAcceptItems();
+}
+
+function renderAcceptItems() {
+  var items = currentAcceptDN.items;
+  var html = '';
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    var accepted = acceptItems[i];
+    var statusHtml = '';
+    if (accepted !== undefined) {
+      var diff = accepted.qty - item.qty;
+      var diffColor = diff === 0 ? 'var(--green)' : 'var(--red)';
+      var diffText = diff === 0 ? 'OK' : (diff > 0 ? '+' + diff : '' + diff);
+      statusHtml = '<div style="display:flex;align-items:center;gap:8px;margin-top:8px">' +
+        '<span style="background:' + diffColor + ';color:#fff;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600">' + accepted.qty + ' / ' + item.qty + ' (' + diffText + ')</span>' +
+        (accepted.note ? '<span style="font-size:12px;color:var(--text-muted)">' + accepted.note + '</span>' : '') +
+        '<button style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;text-decoration:underline" onclick="editAcceptItem(' + i + ')">edit</button>' +
+        '</div>';
+    } else {
+      statusHtml = '<div style="display:flex;gap:8px;margin-top:8px;align-items:center">' +
+        '<input id="accQty_' + i + '" type="number" inputmode="numeric" value="' + item.qty + '" style="width:70px;padding:6px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px" />' +
+        '<input id="accNote_' + i + '" type="text" placeholder="Note (if diff)" style="flex:1;padding:6px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px" />' +
+        '<button class="submit-btn" style="background:var(--green);padding:6px 12px;font-size:13px;margin:0" onclick="confirmAcceptItem(' + i + ')">OK</button>' +
+        '</div>';
+    }
+    html += '<div class="card" style="border-left-color:' + (accepted !== undefined ? 'var(--green)' : 'var(--border)') + '">' +
+      '<div style="display:flex;justify-content:space-between">' +
+      '<div style="font-weight:600;font-size:14px">' + item.product + '</div>' +
+      '<div style="font-size:13px;color:var(--text-muted)">Expected: ' + item.qty + '</div>' +
+      '</div>' +
+      (item.box ? '<div style="font-size:12px;color:var(--text-muted)">Box: ' + item.box + '</div>' : '') +
+      statusHtml +
+      '</div>';
+  }
+  document.getElementById('dnAcceptItems').innerHTML = html;
+  updateAcceptSummary();
+}
+
+function confirmAcceptItem(idx) {
+  var qty = parseInt(document.getElementById('accQty_' + idx).value) || 0;
+  var note = document.getElementById('accNote_' + idx).value.trim();
+  acceptItems[idx] = { qty: qty, note: note };
+  renderAcceptItems();
+}
+
+function editAcceptItem(idx) {
+  delete acceptItems[idx];
+  renderAcceptItems();
+}
+
+function updateAcceptSummary() {
+  var items = currentAcceptDN.items;
+  var allDone = Object.keys(acceptItems).length === items.length;
+  var summaryDiv = document.getElementById('dnAcceptSummary');
+  var submitBtn = document.getElementById('dnAcceptSubmitBtn');
+
+  if (!allDone) {
+    summaryDiv.style.display = 'none';
+    submitBtn.style.display = 'none';
+    return;
+  }
+
+  var totalExpected = 0, totalReceived = 0, discrepancies = 0;
+  var lines = '';
+  for (var i = 0; i < items.length; i++) {
+    var exp = items[i].qty;
+    var rcv = acceptItems[i].qty;
+    totalExpected += exp;
+    totalReceived += rcv;
+    if (exp !== rcv) {
+      discrepancies++;
+      lines += '<div style="color:var(--red);font-size:13px">' + items[i].product + ': ' + rcv + '/' + exp +
+        (acceptItems[i].note ? ' — ' + acceptItems[i].note : '') + '</div>';
+    }
+  }
+  var summaryHtml = '<div style="font-size:14px">Total: <strong>' + totalReceived + '</strong> / ' + totalExpected + ' expected</div>';
+  if (discrepancies > 0) {
+    summaryHtml += '<div style="margin-top:6px;font-weight:600;color:var(--red)">' + discrepancies + ' discrepancy(ies):</div>' + lines;
+  } else {
+    summaryHtml += '<div style="color:var(--green);margin-top:4px">All items match</div>';
+  }
+  document.getElementById('dnAcceptSummaryContent').innerHTML = summaryHtml;
+  summaryDiv.style.display = 'block';
+  submitBtn.style.display = 'block';
+}
+
+function acceptAllItems() {
+  for (var i = 0; i < currentAcceptDN.items.length; i++) {
+    acceptItems[i] = { qty: currentAcceptDN.items[i].qty, note: '' };
+  }
+  renderAcceptItems();
+  showToast('All items accepted — review and submit');
+}
+
+function submitDnAccept() {
+  var btn = document.getElementById('dnAcceptSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  var payload = {
+    action: 'dn_accept',
+    dnId: currentAcceptDN.dnId,
+    staff: currentStaff,
+    items: []
+  };
+  for (var i = 0; i < currentAcceptDN.items.length; i++) {
+    payload.items.push({
+      rowIndex: currentAcceptDN.items[i].rowIndex,
+      receivedQty: acceptItems[i].qty,
+      note: acceptItems[i].note || ''
+    });
+  }
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        showToast('Delivery accepted: ' + data.dnId);
+        showDnTab('pending');
+      } else {
+        showToast('Error: ' + (data.error || 'try again'));
+      }
+      btn.disabled = false;
+      btn.textContent = 'Accept Delivery';
+    })
+    .catch(function() {
+      showToast('Connection error');
+      btn.disabled = false;
+      btn.textContent = 'Accept Delivery';
     });
 }
 
