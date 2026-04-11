@@ -377,9 +377,10 @@ textarea{resize:none;height:80px;line-height:1.5}
   <div id="dnStaffBadge" class="staff-badge"></div>
 
   <!-- Tab selector -->
-  <div style="display:flex;gap:8px;margin-bottom:1rem">
-    <button class="submit-btn" id="dnTabSend" style="flex:1;background:var(--blue)" onclick="showDnTab('send')">Send</button>
-    <button class="submit-btn" id="dnTabPending" style="flex:1;background:var(--text-muted)" onclick="showDnTab('pending')">Pending <span id="dnPendingBadge" style="background:#fff;color:var(--red);border-radius:50%;padding:0 6px;font-size:12px;font-weight:700;margin-left:4px;display:none">0</span></button>
+  <div style="display:flex;gap:6px;margin-bottom:1rem">
+    <button class="submit-btn" id="dnTabSend" style="flex:1;background:var(--blue);font-size:13px;padding:10px 0" onclick="showDnTab('send')">New</button>
+    <button class="submit-btn" id="dnTabSent" style="flex:1;background:var(--text-muted);font-size:13px;padding:10px 0" onclick="showDnTab('sent')">Sent</button>
+    <button class="submit-btn" id="dnTabPending" style="flex:1;background:var(--text-muted);font-size:13px;padding:10px 0" onclick="showDnTab('pending')">Pending <span id="dnPendingBadge" style="background:#fff;color:var(--red);border-radius:50%;padding:0 6px;font-size:11px;font-weight:700;margin-left:2px;display:none">0</span></button>
   </div>
 
   <!-- SEND TAB (existing create DN form) -->
@@ -417,6 +418,13 @@ textarea{resize:none;height:80px;line-height:1.5}
     <div class="list-count" id="dnCount">0 items in list</div>
     <div id="dnListContainer"></div>
     <button class="submit-btn" id="dnSubmitBtn" onclick="submitDnBatch()" style="display:none">Submit All</button>
+  </div>
+
+  <!-- SENT TAB (my sent DNs — cancel/track) -->
+  <div id="dnSentTab" style="display:none">
+    <div id="dnSentLoading" style="text-align:center;padding:2rem;color:var(--text-muted)">Loading...</div>
+    <div id="dnSentList"></div>
+    <div id="dnSentEmpty" style="display:none;text-align:center;padding:2rem;color:var(--text-muted)">No sent deliveries</div>
   </div>
 
   <!-- PENDING TAB (receive/accept) -->
@@ -1225,11 +1233,14 @@ var acceptItems = {};
 
 function showDnTab(tab) {
   document.getElementById('dnSendTab').style.display = tab === 'send' ? 'block' : 'none';
+  document.getElementById('dnSentTab').style.display = tab === 'sent' ? 'block' : 'none';
   document.getElementById('dnPendingTab').style.display = tab === 'pending' ? 'block' : 'none';
   document.getElementById('dnAcceptScreen').style.display = 'none';
   document.getElementById('dnTabSend').style.background = tab === 'send' ? 'var(--blue)' : 'var(--text-muted)';
+  document.getElementById('dnTabSent').style.background = tab === 'sent' ? 'var(--blue)' : 'var(--text-muted)';
   document.getElementById('dnTabPending').style.background = tab === 'pending' ? 'var(--blue)' : 'var(--text-muted)';
   if (tab === 'pending') loadPendingDNs();
+  if (tab === 'sent') loadSentDNs();
 }
 
 function getStaffStore() {
@@ -1401,6 +1412,60 @@ function updateAcceptSummary() {
   document.getElementById('dnAcceptSummaryContent').innerHTML = summaryHtml;
   summaryDiv.style.display = 'block';
   submitBtn.style.display = 'block';
+}
+
+function loadSentDNs() {
+  var staffParam = currentPin === '9999' ? 'ALL' : currentStaff;
+  document.getElementById('dnSentLoading').style.display = 'block';
+  document.getElementById('dnSentList').innerHTML = '';
+  document.getElementById('dnSentEmpty').style.display = 'none';
+
+  fetch(SCRIPT_URL + '?action=dn_list_sent&staff=' + encodeURIComponent(staffParam))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      document.getElementById('dnSentLoading').style.display = 'none';
+      if (!data.success || !data.sent || !data.sent.length) {
+        document.getElementById('dnSentEmpty').style.display = 'block';
+        return;
+      }
+      var html = '';
+      for (var i = 0; i < data.sent.length; i++) {
+        var dn = data.sent[i];
+        var itemCount = dn.items.length + ' item' + (dn.items.length > 1 ? 's' : '');
+        var itemList = dn.items.map(function(it) { return it.product + ' x' + it.qty; }).join(', ');
+        html += '<div class="card" style="border-left-color:var(--blue)">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center">' +
+          '<div><div style="font-weight:700;font-size:14px">' + dn.dnId + '</div>' +
+          '<div style="font-size:13px;color:var(--text-secondary)">' + dn.from + ' → ' + dn.to + '</div>' +
+          '<div style="font-size:12px;color:var(--text-muted)">' + dn.date + ' | ' + itemCount + '</div>' +
+          '<div style="font-size:12px;color:var(--text-muted);margin-top:4px">' + itemList + '</div></div>' +
+          '<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">' +
+          '<span style="background:var(--blue);color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600">Awaiting</span>' +
+          '<button style="background:var(--red);color:#fff;border:none;padding:5px 12px;border-radius:6px;font-size:12px;cursor:pointer" onclick="cancelDN(\'' + dn.dnId + '\')">Cancel</button>' +
+          '</div></div></div>';
+      }
+      document.getElementById('dnSentList').innerHTML = html;
+    })
+    .catch(function() {
+      document.getElementById('dnSentLoading').style.display = 'none';
+      showToast('Connection error');
+    });
+}
+
+function cancelDN(dnId) {
+  if (!confirm('Cancel ' + dnId + '? This cannot be undone.')) return;
+
+  fetch(SCRIPT_URL + '?action=dn_cancel&dnId=' + encodeURIComponent(dnId))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        showToast(dnId + ' cancelled');
+        loadSentDNs();
+      } else {
+        showToast('Error: ' + (data.error || 'try again'));
+      }
+    })
+    .catch(function() { showToast('Connection error'); });
 }
 
 function acceptAllItems() {
