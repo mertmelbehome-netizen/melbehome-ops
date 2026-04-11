@@ -602,8 +602,8 @@ textarea{resize:none;height:80px;line-height:1.5}
     <label>Enter 6-digit code from store screen</label>
     <input id="clockCode" type="text" inputmode="numeric" maxlength="6" placeholder="000 000" style="text-align:center;font-size:32px;font-weight:700;letter-spacing:8px;height:64px;font-family:var(--font-mono)" />
     <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="submit-btn" style="background:var(--green);flex:1" onclick="submitClock('clock_in')">Clock In</button>
-      <button class="submit-btn" style="background:var(--red);flex:1" onclick="submitClock('clock_out')">Clock Out</button>
+      <button class="submit-btn" id="btnClockIn" style="background:var(--green);flex:1" onclick="submitClock('clock_in')">Clock In</button>
+      <button class="submit-btn" id="btnClockOut" style="background:var(--red);flex:1" onclick="submitClock('clock_out')">Clock Out</button>
     </div>
   </div>
   <div id="clockHistory" style="margin-top:1rem"></div>
@@ -1944,6 +1944,14 @@ function submitClock(type) {
   if (!store) { showToast('Select a store'); return; }
   if (!code || code.length !== 6) { showToast('Enter 6-digit code'); return; }
 
+  // Disable both buttons immediately
+  var btnIn = document.getElementById('btnClockIn');
+  var btnOut = document.getElementById('btnClockOut');
+  btnIn.disabled = true; btnOut.disabled = true;
+  var activeBtn = type === 'clock_in' ? btnIn : btnOut;
+  var origText = activeBtn.textContent;
+  activeBtn.textContent = 'Processing...';
+
   var params = new URLSearchParams({
     action: 'clock_verify', staff: currentStaff,
     store: store, code: code, type: type
@@ -1962,8 +1970,14 @@ function submitClock(type) {
       } else {
         showToast(data.error || 'Verification failed');
       }
+      btnIn.disabled = false; btnOut.disabled = false;
+      activeBtn.textContent = origText;
     })
-    .catch(function() { showToast('Connection error'); });
+    .catch(function() {
+      showToast('Connection error');
+      btnIn.disabled = false; btnOut.disabled = false;
+      activeBtn.textContent = origText;
+    });
 }
 
 // === CASH REGISTER ===
