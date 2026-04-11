@@ -3032,14 +3032,30 @@ function editPattern(sku) {
   var pattern = allPatterns.find(function(p){ return p.sku === sku; });
   if (!pattern) { showToast('Desen bulunamadi'); return; }
 
-  var beadDetails = '';
+  var typeOpts = BEAD_TYPES.map(function(t){ return '<option value="'+t.code+'">'+t.label+'</option>'; }).join('');
+  var sizeOpts = BEAD_SIZES.map(function(s){ return '<option value="'+s+'">'+s+'</option>'; }).join('');
+  var colorOpts = BEAD_COLORS.map(function(c){ return c==='---'?'<option disabled>──────</option>':'<option value="'+c+'">'+c+'</option>'; }).join('');
+  var charmOpts = CHARM_MODELS.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
+
+  var beadRows = '';
   if (pattern.beads && pattern.beads.length > 0) {
-    beadDetails = pattern.beads.map(function(b, i) {
-      var typeName = BEAD_TYPES.find(function(t){ return t.code === b.type; });
-      var parts = [(typeName ? typeName.label : b.type), b.size, b.color];
-      if (b.charmModel) parts.push(b.charmModel);
-      if (b.fixed) parts.push('(sabit)');
-      return '<div class="fixed-bead-tag">' + (i+1) + '. ' + parts.join(' / ') + '</div>';
+    beadRows = pattern.beads.map(function(b, i) {
+      var isCharm = b.type === 'CH';
+      return '<div class="bead-row" style="flex-wrap:wrap;margin-bottom:6px;padding:6px;border:1px solid #e0e0e0;border-radius:8px">' +
+        '<span class="bead-num">' + (i+1) + '</span>' +
+        '<select class="eb-type" onchange="onEditBeadTypeChange(this)" style="flex:1">' +
+          '<option value="">Tip</option>' + typeOpts.replace('value="'+b.type+'"', 'value="'+b.type+'" selected') +
+        '</select>' +
+        '<select class="eb-size" style="flex:1">' +
+          '<option value="">Boy</option>' + sizeOpts.replace('value="'+b.size+'"', 'value="'+b.size+'" selected') +
+        '</select>' +
+        '<select class="eb-color" style="flex:1">' +
+          '<option value="">Renk</option>' + colorOpts.replace('value="'+b.color+'"', 'value="'+b.color+'" selected') +
+        '</select>' +
+        '<select class="eb-charm" style="width:100%;margin-top:4px;margin-left:24px;' + (isCharm ? '' : 'display:none') + '">' +
+          '<option value="">Charm modeli</option>' + (b.charmModel ? charmOpts.replace('value="'+b.charmModel+'"', 'value="'+b.charmModel+'" selected') : charmOpts) +
+        '</select>' +
+      '</div>';
     }).join('');
   }
 
@@ -3053,7 +3069,7 @@ function editPattern(sku) {
     '<div style="text-align:center;font-weight:600;margin-bottom:8px">' + pattern.sku + '</div>' +
     thumbHtml +
     '<div class="pc-edit-field"><label>Boncuklar</label>' +
-    '<div style="display:flex;flex-wrap:wrap;gap:4px">' + (beadDetails || '<span style="color:#888;font-size:13px">Boncuk bilgisi yok</span>') + '</div></div>' +
+    '<div id="pcEditBeadContainer">' + (beadRows || '<span style="color:#888;font-size:13px">Boncuk bilgisi yok</span>') + '</div></div>' +
     '<div class="pc-edit-field"><label>Not</label>' +
     '<textarea id="pcEditNote">' + (pattern.note || '') + '</textarea></div>' +
     '<div class="pc-edit-field"><label>Yeni Foto (opsiyonel)</label>' +
@@ -3066,6 +3082,30 @@ function editPattern(sku) {
   overlay.addEventListener('click', function(e){ if(e.target === overlay) closePatternEdit(); });
 }
 
+function onEditBeadTypeChange(sel) {
+  var row = sel.closest('.bead-row');
+  var charmSel = row.querySelector('.eb-charm');
+  charmSel.style.display = (sel.value === 'CH') ? 'block' : 'none';
+  if (sel.value !== 'CH') charmSel.value = '';
+}
+
+function getEditedBeads() {
+  var beads = [];
+  var rows = document.querySelectorAll('#pcEditBeadContainer .bead-row');
+  for (var i = 0; i < rows.length; i++) {
+    var type = rows[i].querySelector('.eb-type').value;
+    var size = rows[i].querySelector('.eb-size').value;
+    var color = rows[i].querySelector('.eb-color').value;
+    var charm = rows[i].querySelector('.eb-charm').value;
+    if (type && size && color) {
+      var bead = { type: type, size: size, color: color };
+      if (type === 'CH' && charm) bead.charmModel = charm;
+      beads.push(bead);
+    }
+  }
+  return beads;
+}
+
 function closePatternEdit() {
   var overlay = document.getElementById('pcEditOverlay');
   if (overlay) overlay.remove();
@@ -3073,11 +3113,21 @@ function closePatternEdit() {
 
 function savePatternEdit(sku) {
   var note = document.getElementById('pcEditNote').value;
+  var beads = getEditedBeads();
   var photoInput = document.getElementById('pcEditPhoto');
   var hasPhoto = photoInput.files && photoInput.files[0];
 
+  if (beads.length === 0) { showToast('En az 1 boncuk olmali'); return; }
+
+  // Recalculate fingerprints
+  var fingerprint = getBeadFingerprint(beads);
+  var structFP = getStructuralFingerprint(beads);
+
   function doSave(photoData) {
-    var payload = { action: 'pattern_update', sku: sku, note: note };
+    var payload = {
+      action: 'pattern_update', sku: sku, note: note,
+      beads: beads, fingerprint: fingerprint, structFingerprint: structFP
+    };
     if (photoData) payload.photo = photoData;
     showToast('Kaydediliyor...');
     fetch(SCRIPT_URL, {
@@ -3094,6 +3144,11 @@ function savePatternEdit(sku) {
         var p = allPatterns.find(function(x){ return x.sku === sku; });
         if (p) {
           p.note = note;
+          p.beads = beads;
+          p.beadCount = beads.length;
+          p.fingerprint = fingerprint;
+          p.structFingerprint = structFP;
+          p.beadSummary = getBeadSummary(beads);
           if (data.photoURL) p.photoURL = data.photoURL;
         }
         pcFiltersPopulated = false;
@@ -3106,7 +3161,7 @@ function savePatternEdit(sku) {
   }
 
   if (hasPhoto) {
-    showToast('Foto sıkıştırılıyor...');
+    showToast('Foto sikistiriliyor...');
     compressImage(photoInput.files[0], 800, 0.7, function(compressed) {
       doSave(compressed);
     });
