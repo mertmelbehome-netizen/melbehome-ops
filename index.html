@@ -736,13 +736,16 @@ textarea{resize:none;height:80px;line-height:1.5}
         <div class="match-sku" id="pcModelIdDisplay" style="margin-bottom:8px"></div>
         <div id="pcModelSummary" style="font-size:12px;color:#666;margin-bottom:12px"></div>
 
-        <label style="font-weight:600;color:#8b5cf6">Degisken Bead Detayi</label>
-        <div class="bead-row" style="border:2px solid #8b5cf6;border-radius:8px;padding:6px">
-          <span class="bead-num" style="color:#8b5cf6">~</span>
-          <select id="varType"><option value="">Tip...</option></select>
-          <select id="varSize"><option value="">Boy...</option></select>
-          <select id="varColor"><option value="">Renk...</option></select>
+        <div id="pcVarSlotSection">
+          <label style="font-weight:600;color:#8b5cf6">Degisken Bead Detayi</label>
+          <div class="bead-row" style="border:2px solid #8b5cf6;border-radius:8px;padding:6px">
+            <span class="bead-num" style="color:#8b5cf6">~</span>
+            <select id="varType"><option value="">Tip...</option></select>
+            <select id="varSize"><option value="">Boy...</option></select>
+          </div>
         </div>
+        <label style="font-weight:600;color:#8b5cf6">Renk</label>
+        <select id="varColor" style="width:100%;padding:8px;border-radius:8px;border:2px solid #8b5cf6"><option value="">Renk...</option></select>
 
         <div class="photo-area">
           <label class="photo-btn" for="pcPhotoInput">📷 Fotograf Cek / Yukle</label>
@@ -2229,24 +2232,29 @@ var CHARM_MODELS = [
   'Fil','Hamsa','Deniz Kabugu','Deniz Yildizi','Yaprak','Cicek','Tas','Anahtar',
   'Sonsuzluk','Pati','Mevlana','Balk','Kutu','Papatya','Diger'
 ];
-var BEAD_SIZES = ['3mm','4mm','4x4','5mm','5.5mm','6mm','6x6','8mm','8x8','10mm','12mm'];
+var BEAD_SIZES = ['2mm','3mm','4mm','4x4','5mm','5.5mm','6mm','6x6','8mm','8x8','10mm','12mm'];
 var BEAD_COLORS = [
   'Seffaf','Beyaz','Siyah','Gold','Silver','Rose Gold',
   '---',
   'Krem','Bej',
   'Gri','Acik Gri','Koyu Gri',
-  'Turkuaz','Acik Mavi','Mavi','Koyu Mavi','Lacivert',
-  'Kirmizi','Koyu Kirmizi','Bordo',
-  'Sari','Acik Sari','Hardal',
+  'Turkuaz','Acik Turkuaz','Koyu Turkuaz',
+  'Acik Mavi','Mavi','Koyu Mavi','Lacivert',
+  'Kirmizi','Acik Kirmizi','Koyu Kirmizi','Bordo',
+  'Sari','Acik Sari','Koyu Sari','Hardal',
   'Yesil','Acik Yesil','Koyu Yesil','Zeytin',
   'Mor','Lila','Koyu Mor',
   'Pembe','Acik Pembe','Koyu Pembe','Fusya',
-  'Turuncu','Mercan',
+  'Turuncu','Acik Turuncu','Koyu Turuncu','Mercan',
   'Kahve','Acik Kahve','Koyu Kahve',
   'Bakir',
   'Multi',
   '---',
-  'TR Beyaz','TR Siyah','TR Mavi','TR Kirmizi','TR Yesil','TR Mor','TR Pembe','TR Turuncu','TR Kahve','TR Gri'
+  'TR Beyaz','TR Siyah','TR Mavi','TR Kirmizi','TR Yesil','TR Mor','TR Pembe','TR Turuncu','TR Kahve','TR Gri','TR Sari',
+  '---',
+  'Marble Beyaz','Marble Gri','Marble Siyah',
+  'Marble Mavi','Marble Yesil','Marble Pembe',
+  'Marble Mor','Marble Kahve','Marble Turkuaz'
 ];
 
 var CATEGORY_NAMES = {SB:'Stretch Bracelet',LX:'Lux Crystal Bracelet',LC:'Lux Cobra Bracelet',CF:'Cuff Bracelet',AN:'Anklet',NL:'Necklace Lux',NC:'Necklace Crystal',NB:'Necklace Bead',RG:'Ring',ER:'Earring'};
@@ -2413,6 +2421,31 @@ function getStructuralFingerprint(beads) {
   }).sort().join('|');
 }
 
+function deepBeadMatch(newBeads, existingBeads) {
+  // Derin karsilastirma: charm modeli, boylar, tipler hepsi eslesmeli
+  if (newBeads.length === 0 || existingBeads.length === 0) return false;
+  // Fixed bead sayisi farkli olabilir (existing tum beadleri icerir, var slot dahil)
+  // Structural fingerprint bazli: type+size+charmModel
+  var newFP = newBeads.map(function(b) {
+    var key = b.type + ':' + b.size;
+    if (b.type === 'CH' && b.charmModel) key += ':' + b.charmModel;
+    return key;
+  }).sort();
+  // Existing beadlerden fixed olanlari al (veya hepsini karsilastir)
+  var exFixed = existingBeads.filter(function(b) { return b.fixed !== false; });
+  if (exFixed.length === 0) exFixed = existingBeads;
+  var exFP = exFixed.map(function(b) {
+    var key = b.type + ':' + b.size;
+    if (b.type === 'CH' && b.charmModel) key += ':' + b.charmModel;
+    return key;
+  }).sort();
+  if (newFP.length !== exFP.length) return false;
+  for (var k = 0; k < newFP.length; k++) {
+    if (newFP[k] !== exFP[k]) return false;
+  }
+  return true;
+}
+
 function getBeadSummary(beads) {
   return beads.map(function(b,i){
     var typeName = BEAD_TYPES.find(function(t){return t.code===b.type});
@@ -2429,32 +2462,42 @@ function confirmModel() {
   var fixedBeads = getFixedBeads();
   if (fixedBeads.length === 0) { showToast('En az 1 sabit bead tanimla'); return; }
   var varSlot = getVarSlot();
-  if (!varSlot) { showToast('Degisken slot tanimla (veya "Tek Desen" kullan)'); return; }
+  // varSlot bos olsa bile devam et — Phase 2'de sadece renk secimi yapilacak
 
   var allBeads = getAllBeadsForSKU();
   var prefix = generateSKUPrefix(allBeads);
   var newSkuPrefix = prefix;
 
   // Batch'te veya sheet'te ayni model var mi kontrol et
+  // Deep matching: structural fingerprint (type+size+charmModel) kullan, sadece prefix degil
   var fixedFP = getStructuralFingerprint(fixedBeads);
   var existingModel = null;
 
-  // Batch'teki girislere bak
+  // Batch'teki girislere bak — ayni kategori + ayni structural fingerprint
   for (var i = 0; i < pcBatchList.length; i++) {
     var p = pcBatchList[i];
-    if (p.category === cat && p.skuPrefix === newSkuPrefix) {
+    if (p.category === cat) {
       var pFixedFP = p.fixedBeads ? getStructuralFingerprint(p.fixedBeads) : '';
       if (pFixedFP === fixedFP) { existingModel = p; break; }
     }
   }
 
-  // Sheet'teki kayitlara bak
+  // Sheet'teki kayitlara bak — structural fingerprint bazli derin karsilastirma
   if (!existingModel) {
     for (var j = 0; j < allPatterns.length; j++) {
       var ap = allPatterns[j];
-      if (ap.category === cat && ap.sku && ap.sku.indexOf(newSkuPrefix) === 0) {
+      if (ap.category === cat && ap.structFingerprint === fixedFP) {
         existingModel = ap;
         break;
+      }
+      // Partial match: ayni prefix ama fingerprint farkli ise — detayli karsilastir
+      if (ap.category === cat && ap.sku && ap.sku.indexOf(newSkuPrefix) === 0) {
+        // Bead bazli derin karsilastirma
+        var apBeads = ap.beads || [];
+        if (deepBeadMatch(fixedBeads, apBeads)) {
+          existingModel = ap;
+          break;
+        }
       }
     }
   }
@@ -2536,16 +2579,28 @@ function goToPhase2(modelDef) {
   document.getElementById('pcModelIdDisplay').textContent = currentModelDef.skuPrefix + '-???';
 
   var summaryHtml = '<strong>Sabit:</strong> ' + getBeadSummary(currentModelDef.fixedBeads) + '<br>';
-  summaryHtml += '<strong>Degisken slot:</strong> ' + (currentModelDef.varSlot.type === 'ANY' ? 'Serbest tip' : BEAD_TYPES.find(function(t){return t.code===currentModelDef.varSlot.type}).label) + ' / ' + (currentModelDef.varSlot.size === 'ANY' ? 'Serbest boy' : currentModelDef.varSlot.size);
+  if (currentModelDef.varSlot) {
+    summaryHtml += '<strong>Degisken slot:</strong> ' + (currentModelDef.varSlot.type === 'ANY' ? 'Serbest tip' : BEAD_TYPES.find(function(t){return t.code===currentModelDef.varSlot.type}).label) + ' / ' + (currentModelDef.varSlot.size === 'ANY' ? 'Serbest boy' : currentModelDef.varSlot.size);
+    document.getElementById('pcVarSlotSection').style.display = 'block';
+    populateVarDropdowns(currentModelDef.varSlot);
+  } else {
+    summaryHtml += '<strong>Mod:</strong> Duz urun — sadece renk sec';
+    document.getElementById('pcVarSlotSection').style.display = 'none';
+    populateVarDropdowns(null);
+  }
   document.getElementById('pcModelSummary').innerHTML = summaryHtml;
-
-  populateVarDropdowns(currentModelDef.varSlot);
 }
 
 function populateVarDropdowns(varSlot) {
   var typeSelect = document.getElementById('varType');
   var sizeSelect = document.getElementById('varSize');
   var colorSelect = document.getElementById('varColor');
+
+  // Renk her zaman doldurulur (varSlot olsa da olmasa da)
+  colorSelect.innerHTML = '<option value="">Renk...</option>' + BEAD_COLORS.map(function(c){return c==='---'?'<option disabled>──────</option>':'<option value="'+c+'">'+c+'</option>'}).join('');
+  colorSelect.disabled = false;
+
+  if (!varSlot) return; // Duz urun — tip/boy gosterilmiyor
 
   if (varSlot.type === 'ANY') {
     typeSelect.innerHTML = '<option value="">Tip...</option>' + BEAD_TYPES.map(function(t){return '<option value="'+t.code+'">'+t.label+'</option>'}).join('');
@@ -2563,21 +2618,32 @@ function populateVarDropdowns(varSlot) {
     sizeSelect.innerHTML = '<option value="' + varSlot.size + '">' + varSlot.size + '</option>';
     sizeSelect.disabled = true;
   }
-
-  colorSelect.innerHTML = '<option value="">Renk...</option>' + BEAD_COLORS.map(function(c){return c==='---'?'<option disabled>──────</option>':'<option value="'+c+'">'+c+'</option>'}).join('');
-  colorSelect.disabled = false;
 }
 
 // === PHASE 2: Varyant Ekle ===
 function addVariantToList() {
   if (!currentModelDef) return;
 
-  var vType = document.getElementById('varType').value;
-  var vSize = document.getElementById('varSize').value;
+  var hasVarSlot = !!currentModelDef.varSlot;
   var vColor = document.getElementById('varColor').value;
-  if (!vType || !vSize || !vColor) { showToast('Degisken bead detayini sec'); return; }
+  if (!vColor) { showToast('Renk sec'); return; }
 
-  var allBeads = currentModelDef.fixedBeads.concat([{type:vType, size:vSize, color:vColor, fixed:false}]);
+  var allBeads;
+  var varBead = null;
+  if (hasVarSlot) {
+    var vType = document.getElementById('varType').value;
+    var vSize = document.getElementById('varSize').value;
+    if (!vType || !vSize) { showToast('Degisken bead detayini sec'); return; }
+    varBead = {type:vType, size:vSize, color:vColor};
+    allBeads = currentModelDef.fixedBeads.concat([{type:vType, size:vSize, color:vColor, fixed:false}]);
+  } else {
+    // Duz urun — fixed beadlere renk ata (hepsi ayni renk)
+    allBeads = currentModelDef.fixedBeads.map(function(b) {
+      return {type:b.type, size:b.size, color:b.color === 'VAR' ? vColor : b.color, fixed:b.fixed, charmModel:b.charmModel};
+    });
+    varBead = null;
+  }
+
   var fingerprint = getBeadFingerprint(allBeads);
 
   // Duplicate check
@@ -2595,7 +2661,7 @@ function addVariantToList() {
     category: currentModelDef.category,
     categoryName: currentModelDef.categoryName,
     fixedBeads: currentModelDef.fixedBeads,
-    varBead: {type:vType, size:vSize, color:vColor},
+    varBead: varBead,
     beads: allBeads,
     beadCount: allBeads.length,
     fingerprint: fingerprint,
@@ -2611,14 +2677,14 @@ function addVariantToList() {
 
   // Reset variant inputs only
   document.getElementById('varColor').value = '';
-  if (currentModelDef.varSlot.type === 'ANY') document.getElementById('varType').value = '';
-  if (currentModelDef.varSlot.size === 'ANY') document.getElementById('varSize').value = '';
+  if (hasVarSlot && currentModelDef.varSlot.type === 'ANY') document.getElementById('varType').value = '';
+  if (hasVarSlot && currentModelDef.varSlot.size === 'ANY') document.getElementById('varSize').value = '';
   document.getElementById('pcNote').value = '';
   pcPhotoData = null;
   document.getElementById('pcPhotoPreview').innerHTML = '';
   document.getElementById('pcPhotoInput').value = '';
   renderPatternBatchList();
-  showToast('Varyant eklendi!');
+  showToast(hasVarSlot ? 'Varyant eklendi!' : 'Renk varyanti eklendi!');
 }
 
 // === Tek Desen (varyant yok) ===
@@ -2691,7 +2757,7 @@ function renderPatternBatchList() {
     var thumbHtml = item.photo ? '<img class="pc-thumb-small" src="' + item.photo + '" />' : '';
     var varBadge = item.varBead
       ? '<span style="background:#8b5cf6;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">~' + item.varBead.color + '</span>'
-      : '<span style="background:#16a34a;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">TEK</span>';
+      : '<span style="background:#16a34a;color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;margin-left:6px">DUZ</span>';
     return '<div class="pc-pattern-item"><div class="pc-item-row">' +
       thumbHtml +
       '<div class="pc-item-info"><div class="pc-sku">' + item.skuPrefix + '-???' + varBadge + '</div>' +
