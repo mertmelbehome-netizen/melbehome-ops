@@ -826,6 +826,7 @@ var allProducts = [];    // [{name, barcode}]
 var allProductNames = []; // backward compat for faulty/dn
 var currentStaff = '';
 var currentPin = '';
+var clockedInStore = '';
 var PATTERN_ALLOWED_PINS = ['9999', '7654', '1004'];
 var STORE_MANAGERS = {'Emel':'WAT','Nuray':'GUI','Sabina':'GLO','Mendy':'BRA'};
 var STORE_STAFF = {
@@ -878,10 +879,44 @@ function checkPin() {
   }
 }
 
+function applyClockStore() {
+  if (!clockedInStore) return;
+  var CODE_TO_NAME = {WAT:'Watford',GUI:'Guildford',BRA:'Bracknell',GLO:'Gloucester',STO:'Storage'};
+  var storeName = CODE_TO_NAME[clockedInStore] || clockedInStore;
+
+  // Stock Count — uses full name options
+  var loc = document.getElementById('location');
+  if (loc && !loc.value) {
+    for (var i = 0; i < loc.options.length; i++) {
+      if (loc.options[i].value === storeName || loc.options[i].text === storeName) { loc.value = loc.options[i].value; break; }
+    }
+  }
+  // Cash Register — uses store code (WAT, GUI, etc)
+  var cash = document.getElementById('cashStore');
+  if (cash && !cash.value) cash.value = clockedInStore;
+
+  // Faulty — uses full name options
+  var faulty = document.getElementById('faultyStore');
+  if (faulty && !faulty.value) {
+    for (var j = 0; j < faulty.options.length; j++) {
+      if (faulty.options[j].value === storeName || faulty.options[j].text === storeName) { faulty.value = faulty.options[j].value; break; }
+    }
+  }
+  // DN — uses full name options for From
+  var dnFrom = document.getElementById('dnFrom');
+  if (dnFrom && !dnFrom.value) {
+    for (var k = 0; k < dnFrom.options.length; k++) {
+      if (dnFrom.options[k].value === storeName || dnFrom.options[k].text === storeName) { dnFrom.value = dnFrom.options[k].value; break; }
+    }
+  }
+}
+
 function openModule(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if ((id === 'stock' || id === 'faulty' || id === 'dn') && allProducts.length === 0) loadProducts();
+  // Auto-fill store from clock-in
+  applyClockStore();
   // Set staff badges
   if (id === 'faulty') {
     document.getElementById('faultyStaffBadge').textContent = 'Logged in as: ' + currentStaff;
@@ -965,11 +1000,13 @@ function loadClockStatus() {
     .then(function(r){return r.json()})
     .then(function(data){
       if (data.success && data.clockedIn) {
+        clockedInStore = data.store || '';
         el.style.display = 'block';
         el.style.background = 'var(--green-light)';
         el.style.color = 'var(--green)';
         el.innerHTML = '&#128994; Clocked in since ' + data.clockInTime;
       } else {
+        clockedInStore = '';
         el.style.display = 'block';
         el.style.background = 'var(--red-light)';
         el.style.color = 'var(--red)';
@@ -1990,6 +2027,12 @@ function submitClock(type) {
       if (data.success) {
         document.getElementById('clockCode').value = '';
         var label = type === 'clock_in' ? 'Clocked In' : 'Clocked Out';
+        // Save clocked-in store globally
+        if (type === 'clock_in') {
+          clockedInStore = store;
+        } else {
+          clockedInStore = '';
+        }
         document.getElementById('clockHistory').innerHTML =
           '<div class="card clock-result"><div class="clock-time">' + data.time + '</div>' +
           '<div class="clock-type ' + type + '">' + label + '</div></div>';
