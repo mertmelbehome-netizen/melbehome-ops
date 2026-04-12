@@ -2275,6 +2275,8 @@ function handleWprPhoto(input) {
         wprPhotoData = compressed;
         wprUploaded = true;
         wprCashAmount = (data.cashAmount !== undefined && data.cashAmount !== null) ? parseFloat(data.cashAmount) : null;
+        console.log('WPR OCR text:', data.ocrText);
+        console.log('WPR cashAmount:', data.cashAmount);
         document.getElementById('wprResult').style.display = 'block';
         document.getElementById('wprResult').innerHTML =
           '<div style="text-align:center;color:var(--green);font-weight:600;padding:8px">WPR photo saved</div>';
