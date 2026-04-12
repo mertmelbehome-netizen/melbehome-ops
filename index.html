@@ -244,7 +244,7 @@ textarea{resize:none;height:80px;line-height:1.5}
     <div class="home-title">Melbe Home Ops</div>
     <div class="home-sub">Enter your PIN to continue</div>
     <div class="card" style="margin-top:1rem">
-      <input id="pinInput" type="password" inputmode="numeric" maxlength="4" placeholder="4-digit PIN" style="text-align:center;font-size:28px;font-weight:700;letter-spacing:12px;height:64px;font-family:var(--font-mono)" onkeydown="if(event.key==='Enter')checkPin()" />
+      <input id="pinInput" type="password" inputmode="numeric" maxlength="8" placeholder="PIN" style="text-align:center;font-size:28px;font-weight:700;letter-spacing:12px;height:64px;font-family:var(--font-mono)" onkeydown="if(event.key==='Enter')checkPin()" />
       <button class="submit-btn" style="margin-top:12px" onclick="checkPin()">Enter</button>
     </div>
   </div>
@@ -827,7 +827,7 @@ var allProductNames = []; // backward compat for faulty/dn
 var currentStaff = '';
 var currentPin = '';
 var clockedInStore = '';
-var PATTERN_ALLOWED_PINS = ['9999', '7654', '1004'];
+var PATTERN_ALLOWED_PINS = ['99991881', '7654', '2762'];
 var STORE_MANAGERS = {'Emel':'WAT','Nuray':'GUI','Sabina':'GLO','Mendy':'BRA'};
 var STORE_STAFF = {
   'WAT': ['Emel','Sachin','Kashan'],
@@ -849,7 +849,7 @@ var PIN_MAP = {
   '1008': 'Akancha',
   '4527': 'Pratika',
   '3918': 'Kashan',
-  '9999': 'Mert'
+  '99991881': 'Mert'
 };
 
 if ('serviceWorker' in navigator) {
@@ -926,7 +926,7 @@ function openModule(id) {
     showDnTab('send');
     // Pre-fetch pending count
     var dnStore = getStaffStore();
-    if (currentPin === '9999') dnStore = 'ALL';
+    if (currentPin === '99991881') dnStore = 'ALL';
     fetch(SCRIPT_URL + '?action=dn_list_pending&store=' + dnStore + '&staff=' + encodeURIComponent(currentStaff))
       .then(function(r){return r.json()}).then(function(d){
         if(d.success && d.pending) updatePendingBadge(d.pending.length);
@@ -934,7 +934,7 @@ function openModule(id) {
   }
   if (id === 'tasks') {
     document.getElementById('tasksStaffBadge').textContent = 'Logged in as: ' + currentStaff;
-    var isOwner = (currentPin === '9999');
+    var isOwner = (currentPin === '99991881');
     var isManager = !!STORE_MANAGERS[currentStaff];
     document.getElementById('taskCreateSection').style.display = (isOwner || isManager) ? 'block' : 'none';
     document.getElementById('taskManagerFilters').style.display = isOwner ? 'flex' : 'none';
@@ -1355,7 +1355,7 @@ function getStaffStore() {
 
 function loadPendingDNs() {
   var store = getStaffStore();
-  if (currentPin === '9999') store = 'ALL';
+  if (currentPin === '99991881') store = 'ALL';
   document.getElementById('dnPendingLoading').style.display = 'block';
   document.getElementById('dnPendingList').innerHTML = '';
   document.getElementById('dnPendingEmpty').style.display = 'none';
@@ -1518,7 +1518,7 @@ function updateAcceptSummary() {
 }
 
 function loadSentDNs() {
-  var staffParam = currentPin === '9999' ? 'ALL' : currentStaff;
+  var staffParam = currentPin === '99991881' ? 'ALL' : currentStaff;
   document.getElementById('dnSentLoading').style.display = 'block';
   document.getElementById('dnSentList').innerHTML = '';
   document.getElementById('dnSentEmpty').style.display = 'none';
@@ -1858,7 +1858,7 @@ function renderTasks() {
       return '<img src="' + url + '" onclick="zoomPhoto(\'' + fullUrl + '\')" style="width:60px;height:60px;object-fit:cover;border-radius:6px;cursor:pointer" />';
     }).join('') + '</div>' : '';
     var hasPhotos = photos.length > 0;
-    var canEdit = (currentPin === '9999') || (STORE_MANAGERS[currentStaff] && STORE_MANAGERS[currentStaff] === t.store);
+    var canEdit = (currentPin === '99991881') || (STORE_MANAGERS[currentStaff] && STORE_MANAGERS[currentStaff] === t.store);
     var actionBtns = canEdit ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">' +
       (isDone ? '' : '<button style="flex:1;font-size:11px;padding:6px;background:var(--text);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:500" onclick="editTask(' + t.id + ')">Edit</button>') +
       (isDone ? '' : '<button style="flex:1;font-size:11px;padding:6px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:500" onclick="addTaskPhoto(' + t.id + ')">📷 Photo</button>') +
