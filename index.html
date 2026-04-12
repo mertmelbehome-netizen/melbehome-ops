@@ -2198,6 +2198,7 @@ function updateCashStore() {
 function submitCashCount(type) {
   var store = document.getElementById('cashStore').value;
   if (!store) { showToast('Select a store'); return; }
+  if (type === 'closing' && !wprPhotoData) { showToast('Take WPR receipt photo first'); return; }
 
   var prefix = type === 'opening' ? 'open' : 'close';
   var counts = getDenomCounts(prefix);
@@ -2221,7 +2222,7 @@ function submitCashCount(type) {
     payload.expenses = JSON.stringify(expenseItems.map(function(ex) { return { amount: ex.amount, hasReceipt: !!ex.photo }; }));
     payload.expenseTotal = expTotal;
     payload.cashSales = total - todayOpeningTotal + expTotal;
-    if (wprCashAmount !== null) payload.wprCash = wprCashAmount;
+    payload.wprCash = (wprCashAmount !== null) ? wprCashAmount : 'OCR_FAIL';
     // Send expense photos separately if needed
     if (expenseItems.some(function(ex) { return !!ex.photo; })) {
       payload.expensePhotos = JSON.stringify(expenseItems.filter(function(ex) { return !!ex.photo; }).map(function(ex) { return ex.photo; }));
