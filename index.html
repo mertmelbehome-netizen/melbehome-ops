@@ -2275,12 +2275,9 @@ function handleWprPhoto(input) {
         wprPhotoData = compressed;
         wprUploaded = true;
         wprCashAmount = (data.cashAmount !== undefined && data.cashAmount !== null) ? parseFloat(data.cashAmount) : null;
-        console.log('WPR OCR text:', data.ocrText);
-        console.log('WPR cashAmount:', data.cashAmount);
         document.getElementById('wprResult').style.display = 'block';
-        var ocrDebug = data.ocrText ? '<div style="font-size:10px;color:#888;margin-top:6px;white-space:pre-wrap;max-height:150px;overflow:auto;border:1px solid #ddd;padding:4px;border-radius:4px">OCR: ' + data.ocrText + '</div>' : '';
         document.getElementById('wprResult').innerHTML =
-          '<div style="text-align:center;color:var(--green);font-weight:600;padding:8px">WPR photo saved' + (wprCashAmount !== null ? ' — Cash: £' + wprCashAmount.toFixed(2) : ' — OCR could not read cash amount') + '</div>' + ocrDebug;
+          '<div style="text-align:center;color:var(--green);font-weight:600;padding:8px">WPR photo saved</div>';
         showToast('WPR photo uploaded');
       } else {
         showToast('Could not upload WPR — retake photo');
