@@ -595,13 +595,7 @@ textarea{resize:none;height:80px;line-height:1.5}
         <input type="file" id="wprPhoto" accept="image/*" capture="environment" style="display:none" onchange="handleWprPhoto(this)" />
       </div>
       <div id="wprPhotoPreview" style="margin-top:8px"></div>
-      <div id="wprResult" style="margin-top:8px;display:none">
-        <div class="card" style="background:#f0fdf4;border:1px solid var(--green);padding:10px">
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>WPR Cash Sales</span><span id="wprCashAmount" style="font-weight:700;color:var(--green)">£0.00</span></div>
-          <div style="display:flex;justify-content:space-between;font-size:13px"><span>App Cash Sales</span><span id="wprAppAmount" style="font-weight:700">£0.00</span></div>
-          <div id="wprVariance" style="margin-top:6px;text-align:center;font-weight:700;font-size:14px"></div>
-        </div>
-      </div>
+      <div id="wprResult" style="margin-top:8px;display:none"></div>
 
       <button class="submit-btn" style="margin-top:12px" onclick="submitCashCount('closing')">Submit Closing Count</button>
     </div>
@@ -2227,6 +2221,7 @@ function submitCashCount(type) {
     payload.expenses = JSON.stringify(expenseItems.map(function(ex) { return { amount: ex.amount, hasReceipt: !!ex.photo }; }));
     payload.expenseTotal = expTotal;
     payload.cashSales = total - todayOpeningTotal + expTotal;
+    if (wprCashAmount !== null) payload.wprCash = wprCashAmount;
     // Send expense photos separately if needed
     if (expenseItems.some(function(ex) { return !!ex.photo; })) {
       payload.expensePhotos = JSON.stringify(expenseItems.filter(function(ex) { return !!ex.photo; }).map(function(ex) { return ex.photo; }));
@@ -2254,6 +2249,7 @@ function submitCashCount(type) {
 }
 
 var wprPhotoData = null;
+var wprCashAmount = null;
 
 function handleWprPhoto(input) {
   if (!input.files || !input.files[0]) return;
@@ -2271,26 +2267,14 @@ function handleWprPhoto(input) {
     })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (data.success && data.cashAmount !== undefined) {
-        var wprCash = parseFloat(data.cashAmount) || 0;
-        var appCash = parseFloat(document.getElementById('summSales').textContent.replace('£','').replace(',','')) || 0;
-        var variance = Math.round((appCash - wprCash) * 100) / 100;
-
-        document.getElementById('wprCashAmount').textContent = '£' + wprCash.toFixed(2);
-        document.getElementById('wprAppAmount').textContent = '£' + appCash.toFixed(2);
-
-        var varEl = document.getElementById('wprVariance');
-        if (Math.abs(variance) < 0.01) {
-          varEl.style.color = 'var(--green)';
-          varEl.textContent = 'Match — no variance';
-        } else {
-          varEl.style.color = 'var(--red)';
-          varEl.textContent = 'Variance: £' + variance.toFixed(2);
-        }
+      if (data.success) {
+        wprCashAmount = (data.cashAmount !== undefined && data.cashAmount !== null) ? parseFloat(data.cashAmount) : null;
         document.getElementById('wprResult').style.display = 'block';
-        showToast('WPR scanned: £' + wprCash.toFixed(2));
+        document.getElementById('wprResult').innerHTML =
+          '<div style="text-align:center;color:var(--green);font-weight:600;padding:8px">WPR photo saved</div>';
+        showToast('WPR photo uploaded');
       } else {
-        showToast('Could not read WPR — enter manually or retake photo');
+        showToast('Could not upload WPR — retake photo');
       }
     })
     .catch(function() { showToast('WPR upload failed — check connection'); });
@@ -2316,6 +2300,7 @@ function resetCashModule() {
   document.getElementById('expenseList').innerHTML = '';
   todayOpeningTotal = 0;
   wprPhotoData = null;
+  wprCashAmount = null;
   document.getElementById('wprPhotoPreview').innerHTML = '';
   document.getElementById('wprResult').style.display = 'none';
   document.getElementById('wprPhoto').value = '';
