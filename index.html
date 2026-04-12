@@ -2198,7 +2198,7 @@ function updateCashStore() {
 function submitCashCount(type) {
   var store = document.getElementById('cashStore').value;
   if (!store) { showToast('Select a store'); return; }
-  if (type === 'closing' && !wprPhotoData) { showToast('Take WPR receipt photo first'); return; }
+  if (type === 'closing' && !wprUploaded) { showToast('Take WPR receipt photo first'); return; }
 
   var prefix = type === 'opening' ? 'open' : 'close';
   var counts = getDenomCounts(prefix);
@@ -2251,16 +2251,19 @@ function submitCashCount(type) {
 
 var wprPhotoData = null;
 var wprCashAmount = null;
+var wprUploaded = false;
 
 function handleWprPhoto(input) {
   if (!input.files || !input.files[0]) return;
-  showToast('Processing WPR...');
+  wprUploaded = false;
+  showToast('Uploading WPR...');
+  var submitBtn = document.querySelector('#cashClosing .submit-btn');
+  if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'WPR uploading...'; }
+
   compressImage(input.files[0], 1200, 0.8, function(compressed) {
-    wprPhotoData = compressed;
     document.getElementById('wprPhotoPreview').innerHTML =
       '<img src="' + compressed + '" style="max-width:100%;border-radius:8px;border:1px solid var(--border)" />';
 
-    // Send to backend for OCR
     fetch(SCRIPT_URL, {
       method: 'POST',
       headers: {'Content-Type': 'text/plain'},
@@ -2269,6 +2272,8 @@ function handleWprPhoto(input) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (data.success) {
+        wprPhotoData = compressed;
+        wprUploaded = true;
         wprCashAmount = (data.cashAmount !== undefined && data.cashAmount !== null) ? parseFloat(data.cashAmount) : null;
         document.getElementById('wprResult').style.display = 'block';
         document.getElementById('wprResult').innerHTML =
@@ -2277,8 +2282,12 @@ function handleWprPhoto(input) {
       } else {
         showToast('Could not upload WPR — retake photo');
       }
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Closing Count'; }
     })
-    .catch(function() { showToast('WPR upload failed — check connection'); });
+    .catch(function() {
+      showToast('WPR upload failed — check connection');
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit Closing Count'; }
+    });
   });
 }
 
@@ -2302,6 +2311,7 @@ function resetCashModule() {
   todayOpeningTotal = 0;
   wprPhotoData = null;
   wprCashAmount = null;
+  wprUploaded = false;
   document.getElementById('wprPhotoPreview').innerHTML = '';
   document.getElementById('wprResult').style.display = 'none';
   document.getElementById('wprPhoto').value = '';
