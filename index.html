@@ -588,6 +588,21 @@ textarea{resize:none;height:80px;line-height:1.5}
         <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>+ Expenses</span><span id="summExp" style="font-weight:700">£0.00</span></div>
         <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;border-top:2px solid var(--accent);padding-top:8px"><span>Cash Sales</span><span id="summSales" style="color:var(--primary)">£0.00</span></div>
       </div>
+
+      <label style="margin-top:16px;font-weight:700">WPR Receipt</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label class="photo-btn" for="wprPhoto" style="margin:0;flex:1;text-align:center">Take WPR Photo</label>
+        <input type="file" id="wprPhoto" accept="image/*" capture="environment" style="display:none" onchange="handleWprPhoto(this)" />
+      </div>
+      <div id="wprPhotoPreview" style="margin-top:8px"></div>
+      <div id="wprResult" style="margin-top:8px;display:none">
+        <div class="card" style="background:#f0fdf4;border:1px solid var(--green);padding:10px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>WPR Cash Sales</span><span id="wprCashAmount" style="font-weight:700;color:var(--green)">£0.00</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px"><span>App Cash Sales</span><span id="wprAppAmount" style="font-weight:700">£0.00</span></div>
+          <div id="wprVariance" style="margin-top:6px;text-align:center;font-weight:700;font-size:14px"></div>
+        </div>
+      </div>
+
       <button class="submit-btn" style="margin-top:12px" onclick="submitCashCount('closing')">Submit Closing Count</button>
     </div>
   </div>
@@ -2238,6 +2253,50 @@ function submitCashCount(type) {
     .catch(function() { showToast('Connection error'); });
 }
 
+var wprPhotoData = null;
+
+function handleWprPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  showToast('Processing WPR...');
+  compressImage(input.files[0], 1200, 0.8, function(compressed) {
+    wprPhotoData = compressed;
+    document.getElementById('wprPhotoPreview').innerHTML =
+      '<img src="' + compressed + '" style="max-width:100%;border-radius:8px;border:1px solid var(--border)" />';
+
+    // Send to backend for OCR
+    fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain'},
+      body: JSON.stringify({ action: 'wpr_ocr', photo: compressed })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success && data.cashAmount !== undefined) {
+        var wprCash = parseFloat(data.cashAmount) || 0;
+        var appCash = parseFloat(document.getElementById('summSales').textContent.replace('£','').replace(',','')) || 0;
+        var variance = Math.round((appCash - wprCash) * 100) / 100;
+
+        document.getElementById('wprCashAmount').textContent = '£' + wprCash.toFixed(2);
+        document.getElementById('wprAppAmount').textContent = '£' + appCash.toFixed(2);
+
+        var varEl = document.getElementById('wprVariance');
+        if (Math.abs(variance) < 0.01) {
+          varEl.style.color = 'var(--green)';
+          varEl.textContent = 'Match — no variance';
+        } else {
+          varEl.style.color = 'var(--red)';
+          varEl.textContent = 'Variance: £' + variance.toFixed(2);
+        }
+        document.getElementById('wprResult').style.display = 'block';
+        showToast('WPR scanned: £' + wprCash.toFixed(2));
+      } else {
+        showToast('Could not read WPR — enter manually or retake photo');
+      }
+    })
+    .catch(function() { showToast('WPR upload failed — check connection'); });
+  });
+}
+
 function resetCashModule() {
   // Reset all denom inputs
   for (var i = 0; i < DENOMS.length; i++) {
@@ -2256,6 +2315,10 @@ function resetCashModule() {
   expenseItems = [];
   document.getElementById('expenseList').innerHTML = '';
   todayOpeningTotal = 0;
+  wprPhotoData = null;
+  document.getElementById('wprPhotoPreview').innerHTML = '';
+  document.getElementById('wprResult').style.display = 'none';
+  document.getElementById('wprPhoto').value = '';
   updateCashSummary();
   switchCashView('opening');
 }
