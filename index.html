@@ -3068,11 +3068,11 @@ function resizeAndEncode(file, callback) {
 }
 
 function callAnalyzePhoto(base64) {
-  fetch(SCRIPT_URL, {
+  fetch(SCRIPT_URL + '?action=analyze_photo', {
     method: 'POST',
     redirect: 'follow',
     headers: {'Content-Type': 'text/plain'},
-    body: JSON.stringify({action: 'analyze_photo', image: base64})
+    body: JSON.stringify({image: base64})
   })
   .then(function(r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
