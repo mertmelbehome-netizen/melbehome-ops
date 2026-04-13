@@ -343,7 +343,11 @@ textarea{resize:none;height:80px;line-height:1.5}
         </div>
       </div>
       <div id="stockRowSection" style="margin-top:10px;display:none">
-        <label style="font-size:13px;font-weight:600">Row Position</label>
+        <label style="font-size:13px;font-weight:600">Stand / Section</label>
+        <select id="stockSectionSelect" style="width:100%;font-size:15px;padding:8px;margin-top:4px">
+          <option value="">Select stand...</option>
+        </select>
+        <label style="font-size:13px;font-weight:600;margin-top:8px;display:block">Row Position</label>
         <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
           <select id="stockRowPosition" style="flex:1;font-size:16px;padding:8px">
             <option value="">No row</option>
@@ -1006,6 +1010,7 @@ function openModule(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   if ((id === 'stock' || id === 'faulty' || id === 'dn') && allProducts.length === 0) loadProducts();
+  if (id === 'stock') loadStoreSections();
   // Auto-fill store from clock-in
   applyClockStore();
   // Set staff badges
@@ -1203,15 +1208,39 @@ function selectProduct(name) {
       noPhotoEl.style.display = 'flex';
     }
 
-    // Row position — show for tracked products (those with photo from PatternCatalog)
+    // Section + Row position — show for tracked products (PatternCatalog products with category)
     var rowSection = document.getElementById('stockRowSection');
-    if (prod.photo) {
+    if (prod.photo || prod.category) {
       rowSection.style.display = 'block';
-      var rowSelect = document.getElementById('stockRowPosition');
-      rowSelect.innerHTML = '<option value="">No row</option>';
-      for (var i = 1; i <= 8; i++) {
-        rowSelect.innerHTML += '<option value="' + i + '">Row ' + i + '</option>';
+
+      // Populate section dropdown — match category to Config sections
+      var sectionSelect = document.getElementById('stockSectionSelect');
+      var store = document.getElementById('location').value || clockedInStore || '';
+      var matchingSections = (window.storeSections || []).filter(function(s) {
+        return s.store === store && s.name.toLowerCase().indexOf((prod.category || '').toLowerCase()) !== -1;
+      });
+
+      sectionSelect.innerHTML = '<option value="">Select stand...</option>';
+      if (matchingSections.length === 1) {
+        // Single match — auto-select
+        sectionSelect.innerHTML = '<option value="' + matchingSections[0].name + '" selected>' + matchingSections[0].name + '</option>';
+        updateRowOptions(matchingSections[0].rowCount);
+      } else if (matchingSections.length > 1) {
+        // Multiple matches (e.g. Stretch £1.5 vs Stretch £4) — let worker choose
+        matchingSections.forEach(function(s) {
+          sectionSelect.innerHTML += '<option value="' + s.name + '">' + s.name + '</option>';
+        });
+        updateRowOptions(0);
+      } else {
+        // No match — show generic 8 rows
+        sectionSelect.innerHTML += '<option value="other">Other / Unknown</option>';
+        updateRowOptions(8);
       }
+
+      sectionSelect.onchange = function() {
+        var sel = matchingSections.find(function(s) { return s.name === sectionSelect.value; });
+        updateRowOptions(sel ? sel.rowCount : 8);
+      };
     } else {
       rowSection.style.display = 'none';
     }
@@ -1272,7 +1301,7 @@ function submitStock() {
               store: location,
               product: product,
               row: rowPos,
-              section: ''
+              section: document.getElementById('stockSectionSelect') ? document.getElementById('stockSectionSelect').value : ''
             })
           });
         }
@@ -3836,6 +3865,35 @@ function addVariantFromBrowse(modelId) {
     skuPrefix: modelId.replace(/-\d{3}$/, ''),
     reuseModelId: modelId
   });
+}
+
+// === SWAP TASK MODULE ===
+// === STOCK COUNT: SECTION + ROW HELPERS ===
+window.storeSections = [];
+
+function loadStoreSections() {
+  var store = document.getElementById('location').value || clockedInStore || '';
+  if (!store) return;
+  fetch(SCRIPT_URL + '?action=swap_list_pending&store=' + store)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success && data.pending) {
+        window.storeSections = data.pending.map(function(s) {
+          return { store: s.store, name: s.section, rowCount: s.rowCount };
+        });
+      }
+    })
+    .catch(function() {});
+}
+
+function updateRowOptions(rowCount) {
+  var rowSelect = document.getElementById('stockRowPosition');
+  rowSelect.innerHTML = '<option value="">No row</option>';
+  if (rowCount > 0) {
+    for (var i = 1; i <= rowCount; i++) {
+      rowSelect.innerHTML += '<option value="' + i + '">Row ' + i + '</option>';
+    }
+  }
 }
 
 // === SWAP TASK MODULE ===
