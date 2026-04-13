@@ -2672,9 +2672,8 @@ function confirmModel() {
   var cat = document.getElementById('pcCategory').value;
   if (!cat) { showToast('Kategori sec'); return; }
   var fixedBeads = getFixedBeads();
-  if (fixedBeads.length === 0) { showToast('En az 1 sabit bead tanimla'); return; }
   var varSlot = getVarSlot();
-  // varSlot bos olsa bile devam et — Phase 2'de sadece renk secimi yapilacak
+  if (fixedBeads.length === 0 && !varSlot) { showToast('En az 1 sabit bead veya degisken slot tanimla'); return; }
 
   var allBeads = getAllBeadsForSKU();
   var prefix = generateSKUPrefix(allBeads);
@@ -2910,7 +2909,7 @@ function addSinglePattern() {
   var cat = document.getElementById('pcCategory').value;
   if (!cat) { showToast('Kategori sec'); return; }
   var fixedBeads = getFixedBeads();
-  if (fixedBeads.length === 0) { showToast('En az 1 sabit bead tanimla'); return; }
+  if (fixedBeads.length === 0) { showToast('Tek desen icin en az 1 sabit bead gerekli'); return; }
 
   var allBeads = getAllBeadsForSKU();
   var prefix = generateSKUPrefix(fixedBeads);
