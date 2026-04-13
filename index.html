@@ -333,6 +333,26 @@ textarea{resize:none;height:80px;line-height:1.5}
     </div>
     <div id="barcodeScannerWrap" style="display:none;margin-top:8px;border-radius:8px;overflow:hidden"></div>
 
+    <div id="stockProductInfo" style="display:none;margin:12px 0;padding:12px;background:var(--bg);border-radius:12px;border:1px solid var(--border)">
+      <div style="display:flex;gap:12px;align-items:center">
+        <img id="stockProductPhoto" src="" style="width:80px;height:80px;border-radius:8px;object-fit:cover;display:none" />
+        <div id="stockProductNoPhoto" style="width:80px;height:80px;border-radius:8px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center">No foto</div>
+        <div style="flex:1">
+          <div id="stockProductName" style="font-weight:700;font-size:14px"></div>
+          <div id="stockProductBarcode" style="font-size:12px;color:var(--muted)"></div>
+        </div>
+      </div>
+      <div id="stockRowSection" style="margin-top:10px;display:none">
+        <label style="font-size:13px;font-weight:600">Sira Pozisyonu</label>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+          <select id="stockRowPosition" style="flex:1;font-size:16px;padding:8px">
+            <option value="">Sira yok</option>
+          </select>
+          <span id="stockRowStatus" style="font-size:12px"></span>
+        </div>
+      </div>
+    </div>
+
     <label>Counted qty</label>
     <div class="qty-wrap">
       <input id="qty" type="number" inputmode="numeric" value="0" min="0" />
@@ -1160,6 +1180,45 @@ function selectProduct(name) {
   document.getElementById('product').value = name;
   document.getElementById('suggestions').style.display = 'none';
   stopBarcodeScanner();
+
+  // Find product info
+  var prod = allProducts.find(function(p) { return p.name === name; });
+  var infoDiv = document.getElementById('stockProductInfo');
+
+  if (prod) {
+    // Show product info panel
+    infoDiv.style.display = 'block';
+    document.getElementById('stockProductName').textContent = prod.name;
+    document.getElementById('stockProductBarcode').textContent = prod.barcode ? 'Barkod: ' + prod.barcode : '';
+
+    // Photo
+    var photoEl = document.getElementById('stockProductPhoto');
+    var noPhotoEl = document.getElementById('stockProductNoPhoto');
+    if (prod.photo) {
+      photoEl.src = prod.photo;
+      photoEl.style.display = 'block';
+      noPhotoEl.style.display = 'none';
+    } else {
+      photoEl.style.display = 'none';
+      noPhotoEl.style.display = 'flex';
+    }
+
+    // Row position — show for tracked products (those with photo from PatternCatalog)
+    var rowSection = document.getElementById('stockRowSection');
+    if (prod.photo) {
+      rowSection.style.display = 'block';
+      var rowSelect = document.getElementById('stockRowPosition');
+      rowSelect.innerHTML = '<option value="">Sira yok</option>';
+      for (var i = 1; i <= 8; i++) {
+        rowSelect.innerHTML += '<option value="' + i + '">Sira ' + i + '</option>';
+      }
+    } else {
+      rowSection.style.display = 'none';
+    }
+  } else {
+    infoDiv.style.display = 'none';
+  }
+
   document.getElementById('qty').focus();
 }
 
@@ -1184,11 +1243,14 @@ function submitStock() {
   var date = now.toLocaleDateString('en-GB');
   var time = now.toTimeString().slice(0,5);
 
+  var rowPos = document.getElementById('stockRowPosition') ? document.getElementById('stockRowPosition').value : '';
+
   var params = new URLSearchParams({
     action: 'submit',
     date, time,
     store: location,
-    staff, product, qty, note
+    staff, product, qty, note,
+    rowPosition: rowPos
   });
 
   fetch(SCRIPT_URL + '?' + params.toString())
@@ -1199,6 +1261,21 @@ function submitStock() {
         document.getElementById('product').value = '';
         document.getElementById('qty').value = '0';
         document.getElementById('note').value = '';
+        document.getElementById('stockProductInfo').style.display = 'none';
+        // If row position was set, persist it to Product Row Map
+        if (rowPos) {
+          fetch(SCRIPT_URL, {
+            method: 'POST',
+            headers: {'Content-Type': 'text/plain'},
+            body: JSON.stringify({
+              action: 'stock_update_row',
+              store: location,
+              product: product,
+              row: rowPos,
+              section: ''
+            })
+          });
+        }
       } else {
         showToast('Error — try again');
       }
