@@ -3070,10 +3070,14 @@ function resizeAndEncode(file, callback) {
 function callAnalyzePhoto(base64) {
   fetch(SCRIPT_URL, {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    redirect: 'follow',
+    headers: {'Content-Type': 'text/plain'},
     body: JSON.stringify({action: 'analyze_photo', image: base64})
   })
-  .then(function(r) { return r.json(); })
+  .then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
   .then(function(result) {
     var btn = document.getElementById('aiScanBtn');
     btn.disabled = false;
@@ -3091,7 +3095,7 @@ function callAnalyzePhoto(base64) {
     btn.disabled = false;
     btn.innerHTML = '&#128247; Fotoyla Tani';
     document.getElementById('aiPhotoInput').value = '';
-    showToast('Baglanti hatasi: ' + err);
+    showToast('Hata: ' + err.message);
   });
 }
 
