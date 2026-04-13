@@ -2409,11 +2409,9 @@ var currentModelDef = null; // Phase 2'de aktif model
 var BEAD_TYPES = [
   {code:'KR',label:'Kristal'},{code:'KP',label:'Kristal Kup'},{code:'BN',label:'Boncuk'},
   {code:'TS',label:'Tas'},
+  {code:'CH',label:'Charm'},{code:'IN',label:'Inci'},{code:'PU',label:'Puskul'},
   {code:'ST',label:'Spacer Top'},{code:'SK',label:'Spacer Kup'},{code:'SD',label:'Spacer Disk'},
-  {code:'SR',label:'Spacer Rondel'},{code:'SM',label:'Spacer Metal'},
-  {code:'CH',label:'Charm'},
-  {code:'IN',label:'Inci'},
-  {code:'PU',label:'Puskul'}
+  {code:'SR',label:'Spacer Rondel'},{code:'SM',label:'Spacer Metal'}
 ];
 var CHARM_MODELS = [
   'Nazar','Kalp','Yildiz','Kelebek','Ay','Gunes','Hayat Agaci',
@@ -2422,28 +2420,24 @@ var CHARM_MODELS = [
 ];
 var BEAD_SIZES = ['2mm','3mm','4mm','4x4','5mm','5.5mm','6mm','6x6','8mm','8x8','10mm','12mm'];
 var BEAD_COLORS = [
-  'Seffaf','Beyaz','Siyah','Gold','Silver','Rose Gold',
+  'Acik Gri','Acik Kahve','Acik Kirmizi','Acik Mavi','Acik Pembe','Acik Sari','Acik Turuncu','Acik Turkuaz','Acik Yesil',
+  'Bakir','Bej','Beyaz','Bordo',
+  'Fusya',
+  'Gold','Gri',
+  'Hardal',
+  'Kahve','Koyu Gri','Koyu Kahve','Koyu Kirmizi','Koyu Mavi','Koyu Mor','Koyu Pembe','Koyu Sari','Koyu Turuncu','Koyu Turkuaz','Koyu Yesil','Krem','Kirmizi',
+  'Lacivert','Lila',
+  'Mavi','Mercan','Mor','Multi',
+  'Pembe',
+  'Rose Gold',
+  'Sari','Seffaf','Silver','Siyah',
+  'Turkuaz','Turuncu',
+  'Yesil',
+  'Zeytin',
   '---',
-  'Krem','Bej',
-  'Gri','Acik Gri','Koyu Gri',
-  'Turkuaz','Acik Turkuaz','Koyu Turkuaz',
-  'Acik Mavi','Mavi','Koyu Mavi','Lacivert',
-  'Kirmizi','Acik Kirmizi','Koyu Kirmizi','Bordo',
-  'Sari','Acik Sari','Koyu Sari','Hardal',
-  'Yesil','Acik Yesil','Koyu Yesil','Zeytin',
-  'Mor','Lila','Koyu Mor',
-  'Pembe','Acik Pembe','Koyu Pembe','Fusya',
-  'Turuncu','Acik Turuncu','Koyu Turuncu','Mercan',
-  'Kahve','Acik Kahve','Koyu Kahve',
-  'Bakir',
-  'Multi',
+  'Marble Beyaz','Marble Gri','Marble Kahve','Marble Kirmizi','Marble Koyu Yesil','Marble Mavi','Marble Mor','Marble Pembe','Marble Sari','Marble Siyah','Marble Turkuaz','Marble Turuncu','Marble Yesil',
   '---',
-  'TR Beyaz','TR Siyah','TR Mavi','TR Kirmizi','TR Yesil','TR Mor','TR Pembe','TR Turuncu','TR Kahve','TR Gri','TR Sari',
-  '---',
-  'Marble Beyaz','Marble Gri','Marble Siyah',
-  'Marble Mavi','Marble Yesil','Marble Pembe',
-  'Marble Mor','Marble Kahve','Marble Turkuaz',
-  'Marble Sari','Marble Kirmizi','Marble Turuncu','Marble Koyu Yesil'
+  'TR Beyaz','TR Gri','TR Kahve','TR Kirmizi','TR Mavi','TR Mor','TR Pembe','TR Sari','TR Siyah','TR Turuncu','TR Yesil'
 ];
 
 var CATEGORY_NAMES = {SB:'Stretch Bracelet',LX:'Lux Crystal Bracelet',LC:'Lux Cobra Bracelet',CF:'Cuff Bracelet',AN:'Anklet',NL:'Necklace Lux',NC:'Necklace Crystal',NB:'Necklace Bead',RG:'Ring',ER:'Earring'};
