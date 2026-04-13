@@ -976,7 +976,8 @@ function openModule(id) {
     fetch(SCRIPT_URL + '?action=check_clockin&staff=' + encodeURIComponent(currentStaff))
       .then(function(r){return r.json()})
       .then(function(data){
-        if (data.success && !data.clockedIn && currentPin !== '9999') {
+        var isOwner = (currentPin === '99991881');
+        if (data.success && !data.clockedIn && !isOwner) {
           showToast('Once Clock In yapman gerekiyor');
           goHome();
           setTimeout(function(){openModule('clockInOut')},300);
