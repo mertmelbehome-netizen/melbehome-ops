@@ -3115,7 +3115,10 @@ function handlePhotoSelected(input) {
   btn.disabled = true;
   btn.innerHTML = '<span class="ai-scan-spinner"></span> Analiz ediliyor...';
 
-  resizeAndEncode(file, function(base64) {
+  resizeAndEncode(file, function(base64, dataUrl) {
+    // Fotoyu urun fotosu olarak da kaydet
+    pcPhotoData = dataUrl;
+    document.getElementById('pcPhotoPreview').innerHTML = '<img class="photo-thumb" src="' + dataUrl + '" />';
     callAnalyzePhoto(base64);
   });
 }
@@ -3137,7 +3140,7 @@ function resizeAndEncode(file, callback) {
       canvas.getContext('2d').drawImage(img, 0, 0, w, h);
       var dataUrl = canvas.toDataURL('image/jpeg', 0.85);
       var base64 = dataUrl.split(',')[1];
-      callback(base64);
+      callback(base64, dataUrl);
     };
     img.src = e.target.result;
   };
@@ -3221,6 +3224,19 @@ function fillFormFromAI(result) {
   updateSKUPreview();
   showToast('AI ' + beads.length + ' bead algiladi — kontrol et');
 
+  // Add "make variable" buttons to each bead row
+  var rows = document.querySelectorAll('#pcFixedBeadContainer .bead-row');
+  for (var j = 0; j < rows.length; j++) {
+    var varBtn = document.createElement('button');
+    varBtn.textContent = '~';
+    varBtn.title = 'Degisken yap';
+    varBtn.style.cssText = 'background:#8b5cf6;color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-weight:700;cursor:pointer;font-size:14px;margin-left:4px';
+    varBtn.onclick = (function(idx) {
+      return function() { makeBeadVariable(idx); };
+    })(j);
+    rows[j].appendChild(varBtn);
+  }
+
   // Check for existing model match
   var category = result.category;
   var fixedBeads = getFixedBeads();
@@ -3231,6 +3247,32 @@ function fillFormFromAI(result) {
       showToast('Eslesen model: ' + m.sku + ' (' + m.variantCount + ' varyant)');
     }
   }
+}
+
+function makeBeadVariable(rowIndex) {
+  var rows = document.querySelectorAll('#pcFixedBeadContainer .bead-row');
+  if (rowIndex >= rows.length) return;
+  var row = rows[rowIndex];
+  var selects = row.querySelectorAll('select');
+  var type = selects[0].value;
+  var size = selects[1].value;
+
+  // Set var slot
+  document.getElementById('varSlotType').value = type || '';
+  document.getElementById('varSlotSize').value = size || '';
+
+  // Remove this row from fixed beads
+  row.remove();
+  pcFixedBeadCount--;
+
+  // Renumber remaining rows
+  var remaining = document.querySelectorAll('#pcFixedBeadContainer .bead-row');
+  for (var i = 0; i < remaining.length; i++) {
+    remaining[i].querySelector('.bead-num').textContent = i + 1;
+  }
+
+  updateSKUPreview();
+  showToast('Degisken slot ayarlandi: ' + type + ' ' + size);
 }
 
 function removePatternItem(idx) {
