@@ -3482,10 +3482,18 @@ function renderPatternBrowser() {
   var filtered = allPatterns.filter(function(p) {
     if (catFilter && p.category !== catFilter) return false;
     if (modelFilter && p.modelId !== modelFilter) return false;
-    if (colorFilter && !(p.beads && p.beads.some(function(b){ return b.color === colorFilter; }))) return false;
-    if (typeFilter && !(p.beads && p.beads.some(function(b){ return b.type === typeFilter; }))) return false;
-    if (sizeFilter && !(p.beads && p.beads.some(function(b){ return b.size === sizeFilter; }))) return false;
-    if (charmFilter && !(p.beads && p.beads.some(function(b){ return b.charmModel === charmFilter; }))) return false;
+    if ((colorFilter || typeFilter || sizeFilter || charmFilter) && p.beads) {
+      var beadMatch = p.beads.some(function(b) {
+        if (colorFilter && b.color !== colorFilter) return false;
+        if (typeFilter && b.type !== typeFilter) return false;
+        if (sizeFilter && b.size !== sizeFilter) return false;
+        if (charmFilter && b.charmModel !== charmFilter) return false;
+        return true;
+      });
+      if (!beadMatch) return false;
+    } else if ((colorFilter || typeFilter || sizeFilter || charmFilter) && !p.beads) {
+      return false;
+    }
     if (search) {
       var haystack = (p.sku + ' ' + p.categoryName + ' ' + p.beadSummary + ' ' + (p.note||'') + ' ' + (p.barcode||'')).toLowerCase();
       return haystack.indexOf(search) !== -1;
