@@ -1208,38 +1208,24 @@ function selectProduct(name) {
       noPhotoEl.style.display = 'flex';
     }
 
-    // Section + Row position — show for tracked products (PatternCatalog products with category)
+    // Section + Row position — show for tracked products (PatternCatalog products)
     var rowSection = document.getElementById('stockRowSection');
     if (prod.photo || prod.category) {
       rowSection.style.display = 'block';
 
-      // Populate section dropdown — match category to Config sections
+      // Populate section dropdown — all sections for this store
       var sectionSelect = document.getElementById('stockSectionSelect');
-      var store = document.getElementById('location').value || clockedInStore || '';
-      var matchingSections = (window.storeSections || []).filter(function(s) {
-        return s.store === store && s.name.toLowerCase().indexOf((prod.category || '').toLowerCase()) !== -1;
-      });
+      var allSections = window.storeSections || [];
 
       sectionSelect.innerHTML = '<option value="">Select stand...</option>';
-      if (matchingSections.length === 1) {
-        // Single match — auto-select
-        sectionSelect.innerHTML = '<option value="' + matchingSections[0].name + '" selected>' + matchingSections[0].name + '</option>';
-        updateRowOptions(matchingSections[0].rowCount);
-      } else if (matchingSections.length > 1) {
-        // Multiple matches (e.g. Stretch £1.5 vs Stretch £4) — let worker choose
-        matchingSections.forEach(function(s) {
-          sectionSelect.innerHTML += '<option value="' + s.name + '">' + s.name + '</option>';
-        });
-        updateRowOptions(0);
-      } else {
-        // No match — show generic 8 rows
-        sectionSelect.innerHTML += '<option value="other">Other / Unknown</option>';
-        updateRowOptions(8);
-      }
+      allSections.forEach(function(s) {
+        sectionSelect.innerHTML += '<option value="' + s.name + '">' + s.name + '</option>';
+      });
+      updateRowOptions(0);
 
       sectionSelect.onchange = function() {
-        var sel = matchingSections.find(function(s) { return s.name === sectionSelect.value; });
-        updateRowOptions(sel ? sel.rowCount : 8);
+        var sel = allSections.find(function(s) { return s.name === sectionSelect.value; });
+        updateRowOptions(sel ? sel.rowCount : 0);
       };
     } else {
       rowSection.style.display = 'none';
@@ -3882,13 +3868,11 @@ window.storeSections = [];
 function loadStoreSections() {
   var store = document.getElementById('location').value || clockedInStore || '';
   if (!store) return;
-  fetch(SCRIPT_URL + '?action=swap_list_pending&store=' + store)
+  fetch(SCRIPT_URL + '?action=sections_list&store=' + store)
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (data.success && data.pending) {
-        window.storeSections = data.pending.map(function(s) {
-          return { store: s.store, name: s.section, rowCount: s.rowCount };
-        });
+      if (data.success && data.sections) {
+        window.storeSections = data.sections;
       }
     })
     .catch(function() {});
