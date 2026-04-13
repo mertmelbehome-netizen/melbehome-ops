@@ -294,6 +294,14 @@ textarea{resize:none;height:80px;line-height:1.5}
         <div class="module-icon" style="background:var(--purple-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
         <h3>Patterns</h3>
       </div>
+      <div class="module-card-mini" onclick="openModule('swapTask')" id="swapTaskCard" style="display:none">
+        <div class="module-icon" style="background:#e0f2fe">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2">
+            <path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
+          </svg>
+        </div>
+        <h3>Stand Swap</h3>
+      </div>
     </div>
   </div>
 </div>
@@ -606,6 +614,51 @@ textarea{resize:none;height:80px;line-height:1.5}
   </div>
 </div>
 
+<!-- SWAP TASK MODULE -->
+<div id="swapTask" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <h2>Stand Swap</h2>
+  </div>
+  <div id="swapStaffBadge" class="staff-badge"></div>
+
+  <div id="swapPendingList" class="card" style="margin:12px">
+    <p style="text-align:center;color:var(--muted)">Loading...</p>
+  </div>
+
+  <div id="swapForm" style="display:none;margin:12px">
+    <div class="card">
+      <h3 id="swapSectionTitle" style="margin-bottom:12px"></h3>
+      <p id="swapInfo" style="font-size:13px;color:var(--muted);margin-bottom:12px"></p>
+
+      <label>Swap Type</label>
+      <select id="swapType" onchange="document.getElementById('swapCustomRows').style.display=this.value==='custom'?'block':'none'">
+        <option value="mirror">Mirror (ust ↔ alt)</option>
+        <option value="custom">Custom</option>
+      </select>
+
+      <div id="swapCustomRows" style="display:none;margin-top:8px">
+        <label>Row A (ust grup)</label>
+        <input id="swapRowA" type="text" placeholder="1-4" />
+        <label>Row B (alt grup)</label>
+        <input id="swapRowB" type="text" placeholder="5-8" />
+      </div>
+
+      <label style="margin-top:16px;font-weight:700">Stant Fotografi (zorunlu)</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label class="photo-btn" for="swapPhotoInput" style="margin:0;flex:1;text-align:center">Foto Cek</label>
+        <input type="file" id="swapPhotoInput" accept="image/*" capture="environment"
+          style="display:none" onchange="handleSwapPhoto(this)" />
+      </div>
+      <div id="swapPhotoPreview" style="margin-top:8px"></div>
+
+      <button id="swapSubmitBtn" class="submit-btn" style="margin-top:16px" onclick="submitSwapComplete()" disabled>
+        Swap tamamlanmadan foto gerekli
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- CLOCK IN/OUT MODULE -->
 <div id="clockInOut" class="screen">
   <div class="header">
@@ -887,6 +940,7 @@ function checkPin() {
     document.getElementById('homeDate').textContent = days[today.getDay()] + ', ' + today.getDate() + ' ' + months[today.getMonth()] + ' ' + today.getFullYear();
     loadClockStatus();
     loadHomeTasks();
+    document.getElementById('swapTaskCard').style.display = 'flex';
     document.getElementById('staff').value = currentStaff;
     document.getElementById('patternCatalogCard').style.display = PATTERN_ALLOWED_PINS.includes(pin) ? 'flex' : 'none';
     document.getElementById('chatFab').style.display = 'flex';
@@ -962,6 +1016,10 @@ function openModule(id) {
     document.getElementById('pcStaffBadge').textContent = 'Logged in as: ' + currentStaff;
     if (pcFixedBeadCount === 0) addFixedBeadRow();
     if (allPatterns.length === 0) loadPatternList();
+  }
+  if (id === 'swapTask') {
+    document.getElementById('swapStaffBadge').textContent = 'Logged in as: ' + currentStaff;
+    loadPendingSwaps();
   }
   if (id === 'clockInOut') {
     document.getElementById('clockStaffBadge').textContent = 'Logged in as: ' + currentStaff;
@@ -3655,6 +3713,120 @@ function addVariantFromBrowse(modelId) {
     skuPrefix: modelId.replace(/-\d{3}$/, ''),
     reuseModelId: modelId
   });
+}
+
+// === SWAP TASK MODULE ===
+var swapPhotoData = null;
+var currentSwapSection = null;
+
+function loadPendingSwaps() {
+  var store = clockedInStore || getStaffStore();
+  if (!store) store = 'WAT';
+  fetch(SCRIPT_URL + '?action=swap_list_pending&store=' + store)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success) { showToast('Swap listesi yuklenemedi'); return; }
+      var list = document.getElementById('swapPendingList');
+      if (data.pending.length === 0) {
+        list.innerHTML = '<p style="text-align:center;color:var(--green);padding:20px">Tum swap\'lar tamamlandi!</p>';
+        return;
+      }
+      var html = '<h3 style="margin-bottom:12px">Bekleyen Swap\'lar</h3>';
+      data.pending.forEach(function(s) {
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer" onclick="openSwapForm(\'' + s.section.replace(/'/g, "\\'") + '\',' + s.rowCount + ',\'' + s.defaultRowA + '\',\'' + s.defaultRowB + '\',\'' + s.store + '\')">';
+        html += '<div><strong>' + s.section + '</strong><br><span style="font-size:12px;color:var(--muted)">' + s.rowCount + ' sira | Son swap: ' + s.lastSwap + '</span></div>';
+        html += '<span style="color:var(--amber);font-size:20px">→</span>';
+        html += '</div>';
+      });
+      list.innerHTML = html;
+    })
+    .catch(function() {
+      document.getElementById('swapPendingList').innerHTML = '<p style="color:var(--red)">Baglanti hatasi</p>';
+    });
+}
+
+function openSwapForm(section, rowCount, defaultRowA, defaultRowB, store) {
+  currentSwapSection = { section: section, rowCount: rowCount, store: store, defaultRowA: defaultRowA, defaultRowB: defaultRowB };
+  document.getElementById('swapSectionTitle').textContent = section;
+  document.getElementById('swapInfo').textContent = rowCount + ' sira | Varsayilan: ' + defaultRowA + ' <-> ' + defaultRowB;
+  document.getElementById('swapRowA').value = defaultRowA;
+  document.getElementById('swapRowB').value = defaultRowB;
+  document.getElementById('swapPendingList').style.display = 'none';
+  document.getElementById('swapForm').style.display = 'block';
+  document.getElementById('swapPhotoPreview').innerHTML = '';
+  document.getElementById('swapType').value = 'mirror';
+  document.getElementById('swapCustomRows').style.display = 'none';
+  swapPhotoData = null;
+  updateSwapSubmitBtn();
+}
+
+function handleSwapPhoto(input) {
+  if (!input.files[0]) return;
+  compressImage(input.files[0], 1200, 0.8, function(compressed) {
+    swapPhotoData = compressed;
+    document.getElementById('swapPhotoPreview').innerHTML = '<img src="' + compressed + '" style="width:100%;border-radius:8px;margin-top:8px" />';
+    updateSwapSubmitBtn();
+  });
+}
+
+function updateSwapSubmitBtn() {
+  var btn = document.getElementById('swapSubmitBtn');
+  if (swapPhotoData) {
+    btn.disabled = false;
+    btn.textContent = 'Swap Tamamla';
+    btn.style.background = 'var(--green)';
+  } else {
+    btn.disabled = true;
+    btn.textContent = 'Swap tamamlanmadan foto gerekli';
+    btn.style.background = '';
+  }
+}
+
+function submitSwapComplete() {
+  if (!swapPhotoData) { showToast('Foto cekmeden tamamlayamazsin'); return; }
+  if (!currentSwapSection) return;
+
+  var swapType = document.getElementById('swapType').value;
+  var rowA = swapType === 'custom' ? document.getElementById('swapRowA').value : currentSwapSection.defaultRowA;
+  var rowB = swapType === 'custom' ? document.getElementById('swapRowB').value : currentSwapSection.defaultRowB;
+
+  var payload = {
+    action: 'swap_complete',
+    store: currentSwapSection.store,
+    section: currentSwapSection.section,
+    rowA: rowA,
+    rowB: rowB,
+    swapType: swapType,
+    photo: swapPhotoData,
+    staff: currentStaff
+  };
+
+  document.getElementById('swapSubmitBtn').disabled = true;
+  document.getElementById('swapSubmitBtn').textContent = 'Gonderiliyor...';
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        showToast('Swap kaydedildi!');
+        document.getElementById('swapForm').style.display = 'none';
+        document.getElementById('swapPendingList').style.display = 'block';
+        swapPhotoData = null;
+        currentSwapSection = null;
+        loadPendingSwaps();
+      } else {
+        showToast('Hata: ' + (data.error || 'Bilinmeyen hata'));
+        updateSwapSubmitBtn();
+      }
+    })
+    .catch(function() {
+      showToast('Baglanti hatasi');
+      updateSwapSubmitBtn();
+    });
 }
 </script>
 </body>
