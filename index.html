@@ -723,6 +723,7 @@ textarea{resize:none;height:80px;line-height:1.5}
             </select>
             <select id="varSlotSize" onchange="updateSKUPreview()">
               <option value="">Boy...</option>
+              <option value="2mm">2mm</option>
               <option value="3mm">3mm</option>
               <option value="4mm">4mm</option>
               <option value="4x4">4x4</option>
@@ -980,11 +981,21 @@ function openModule(id) {
           renderDenomRows('openDenoms', 'open');
           renderDenomRows('closeDenoms', 'close');
         }
-        var staffStores = [];
-        for (var s in STORE_STAFF) {
-          if (STORE_STAFF[s].indexOf(currentStaff) !== -1) staffStores.push(s);
+        // Lock cash count to clocked-in store
+        var cashStoreSelect = document.getElementById('cashStore');
+        if (clockedInStore && currentPin !== '99991881') {
+          var storeNames = {WAT:'Watford',GUI:'Guildford',BRA:'Bracknell',GLO:'Gloucester'};
+          cashStoreSelect.innerHTML = '<option value="' + clockedInStore + '">' + (storeNames[clockedInStore] || clockedInStore) + '</option>';
+          cashStoreSelect.value = clockedInStore;
+          cashStoreSelect.disabled = true;
+        } else {
+          cashStoreSelect.disabled = false;
+          var staffStores = [];
+          for (var s in STORE_STAFF) {
+            if (STORE_STAFF[s].indexOf(currentStaff) !== -1) staffStores.push(s);
+          }
+          if (staffStores.length === 1) cashStoreSelect.value = staffStores[0];
         }
-        if (staffStores.length === 1) document.getElementById('cashStore').value = staffStores[0];
       })
       .catch(function(){
         // Baglanti hatasi — yine de devam etsin
@@ -992,6 +1003,14 @@ function openModule(id) {
         if (!document.getElementById('open_0')) {
           renderDenomRows('openDenoms', 'open');
           renderDenomRows('closeDenoms', 'close');
+        }
+        // Lock cash count to clocked-in store (offline fallback)
+        var cashStoreSelect = document.getElementById('cashStore');
+        if (clockedInStore && currentPin !== '99991881') {
+          var storeNames = {WAT:'Watford',GUI:'Guildford',BRA:'Bracknell',GLO:'Gloucester'};
+          cashStoreSelect.innerHTML = '<option value="' + clockedInStore + '">' + (storeNames[clockedInStore] || clockedInStore) + '</option>';
+          cashStoreSelect.value = clockedInStore;
+          cashStoreSelect.disabled = true;
         }
       });
   }
@@ -2392,12 +2411,14 @@ var BEAD_TYPES = [
   {code:'TS',label:'Tas'},
   {code:'ST',label:'Spacer Top'},{code:'SK',label:'Spacer Kup'},{code:'SD',label:'Spacer Disk'},
   {code:'SR',label:'Spacer Rondel'},{code:'SM',label:'Spacer Metal'},
-  {code:'CH',label:'Charm'}
+  {code:'CH',label:'Charm'},
+  {code:'IN',label:'Inci'},
+  {code:'PU',label:'Puskul'}
 ];
 var CHARM_MODELS = [
   'Nazar','Kalp','Yildiz','Kelebek','Ay','Gunes','Hayat Agaci',
   'Fil','Hamsa','Deniz Kabugu','Deniz Yildizi','Yaprak','Cicek','Tas','Anahtar',
-  'Sonsuzluk','Pati','Mevlana','Balk','Kutu','Papatya','Diger'
+  'Sonsuzluk','Pati','Mevlana','Balk','Kutu','Papatya','Lotus','Diger'
 ];
 var BEAD_SIZES = ['2mm','3mm','4mm','4x4','5mm','5.5mm','6mm','6x6','8mm','8x8','10mm','12mm'];
 var BEAD_COLORS = [
@@ -2421,7 +2442,8 @@ var BEAD_COLORS = [
   '---',
   'Marble Beyaz','Marble Gri','Marble Siyah',
   'Marble Mavi','Marble Yesil','Marble Pembe',
-  'Marble Mor','Marble Kahve','Marble Turkuaz'
+  'Marble Mor','Marble Kahve','Marble Turkuaz',
+  'Marble Sari','Marble Kirmizi','Marble Turuncu','Marble Koyu Yesil'
 ];
 
 var CATEGORY_NAMES = {SB:'Stretch Bracelet',LX:'Lux Crystal Bracelet',LC:'Lux Cobra Bracelet',CF:'Cuff Bracelet',AN:'Anklet',NL:'Necklace Lux',NC:'Necklace Crystal',NB:'Necklace Bead',RG:'Ring',ER:'Earring'};
