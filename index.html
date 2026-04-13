@@ -3210,6 +3210,7 @@ function editPattern(sku) {
         '<select class="eb-color" style="flex:1">' +
           '<option value="">Renk</option>' + colorOpts.replace('value="'+b.color+'"', 'value="'+b.color+'" selected') +
         '</select>' +
+        '<button style="background:none;border:none;color:#e53e3e;font-size:18px;cursor:pointer;padding:0 4px" onclick="this.parentElement.remove();renumberEditBeads()">x</button>' +
         '<select class="eb-charm" style="width:100%;margin-top:4px;margin-left:24px;' + (isCharm ? '' : 'display:none') + '">' +
           '<option value="">Charm modeli</option>' + (b.charmModel ? charmOpts.replace('value="'+b.charmModel+'"', 'value="'+b.charmModel+'" selected') : charmOpts) +
         '</select>' +
@@ -3227,7 +3228,8 @@ function editPattern(sku) {
     '<div style="text-align:center;font-weight:600;margin-bottom:8px">' + pattern.sku + '</div>' +
     thumbHtml +
     '<div class="pc-edit-field"><label>Boncuklar</label>' +
-    '<div id="pcEditBeadContainer">' + (beadRows || '<span style="color:#888;font-size:13px">Boncuk bilgisi yok</span>') + '</div></div>' +
+    '<div id="pcEditBeadContainer">' + (beadRows || '<span style="color:#888;font-size:13px">Boncuk bilgisi yok</span>') + '</div>' +
+    '<button type="button" style="width:100%;margin-top:6px;padding:8px;background:#8b5cf6;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer" onclick="addEditBead()">+ Bead Ekle</button></div>' +
     '<div class="pc-edit-field"><label>Not</label>' +
     '<textarea id="pcEditNote">' + (pattern.note || '') + '</textarea></div>' +
     '<div class="pc-edit-field"><label>Yeni Foto (opsiyonel)</label>' +
@@ -3238,6 +3240,32 @@ function editPattern(sku) {
     '</div></div>';
   document.body.appendChild(overlay);
   overlay.addEventListener('click', function(e){ if(e.target === overlay) closePatternEdit(); });
+}
+
+function addEditBead() {
+  var container = document.getElementById('pcEditBeadContainer');
+  var count = container.querySelectorAll('.bead-row').length + 1;
+  var typeOpts = '<option value="">Tip...</option>' + BEAD_TYPES.map(function(t){return '<option value="'+t.code+'">'+t.label+'</option>'}).join('');
+  var sizeOpts = '<option value="">Boy...</option>' + BEAD_SIZES.map(function(s){return '<option value="'+s+'">'+s+'</option>'}).join('');
+  var colorOpts = '<option value="">Renk...</option>' + BEAD_COLORS.map(function(c){return c==='---'?'<option disabled>──────</option>':'<option value="'+c+'">'+c+'</option>'}).join('');
+  var charmOpts = '<option value="">Charm modeli...</option>' + CHARM_MODELS.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
+  var row = document.createElement('div');
+  row.className = 'bead-row';
+  row.style.cssText = 'flex-wrap:wrap;margin-bottom:6px;padding:6px;border:1px solid #8b5cf6;border-radius:8px;background:#f8f5ff';
+  row.innerHTML = '<span class="bead-num">' + count + '</span>' +
+    '<select class="eb-type" onchange="onEditBeadTypeChange(this)" style="flex:1">' + typeOpts + '</select>' +
+    '<select class="eb-size" style="flex:1">' + sizeOpts + '</select>' +
+    '<select class="eb-color" style="flex:1">' + colorOpts + '</select>' +
+    '<button style="background:none;border:none;color:#e53e3e;font-size:18px;cursor:pointer;padding:0 4px" onclick="this.parentElement.remove();renumberEditBeads()">x</button>' +
+    '<select class="eb-charm" style="display:none;width:100%;margin-top:4px;margin-left:24px">' + charmOpts + '</select>';
+  container.appendChild(row);
+}
+
+function renumberEditBeads() {
+  var rows = document.querySelectorAll('#pcEditBeadContainer .bead-row');
+  for (var i = 0; i < rows.length; i++) {
+    rows[i].querySelector('.bead-num').textContent = i + 1;
+  }
 }
 
 function onEditBeadTypeChange(sel) {
