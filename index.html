@@ -1405,6 +1405,7 @@ function submitStock() {
 
   var completed = 0;
   var section = document.getElementById('stockSectionSelect') ? document.getElementById('stockSectionSelect').value : '';
+  var persistRow = rowPos; // save for row map update regardless of which sub finishes last
 
   submissions.forEach(function(sub) {
     var params = new URLSearchParams({
@@ -1428,7 +1429,7 @@ function submitStock() {
             document.getElementById('note').value = '';
             document.getElementById('stockProductInfo').style.display = 'none';
             document.getElementById('displayStockSplit').style.display = 'none';
-            if (sub.rowPosition) {
+            if (persistRow) {
               fetch(SCRIPT_URL, {
                 method: 'POST',
                 headers: {'Content-Type': 'text/plain'},
@@ -1436,10 +1437,11 @@ function submitStock() {
                   action: 'stock_update_row',
                   store: location,
                   product: product,
-                  row: sub.rowPosition,
+                  row: persistRow,
                   section: section
                 })
               });
+              persistRow = ''; // only persist once
             }
           } else {
             showToast('Error — try again');
