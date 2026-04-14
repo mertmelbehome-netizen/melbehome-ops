@@ -290,6 +290,10 @@ textarea{resize:none;height:80px;line-height:1.5}
         <div class="module-icon" style="background:var(--primary-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
         <h3>All Tasks</h3>
       </div>
+      <div class="module-card-mini" onclick="openModule('kasaExport')">
+        <div class="module-icon" style="background:#e8f5e9"><svg viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+        <h3>Kasa Export</h3>
+      </div>
       <div class="module-card-mini" id="patternCatalogCard" style="display:none" onclick="openModule('patternCatalog')">
         <div class="module-icon" style="background:var(--purple-light)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
         <h3>Patterns</h3>
@@ -735,6 +739,24 @@ textarea{resize:none;height:80px;line-height:1.5}
   </div>
 </div>
 
+<div class="screen" id="kasaExport">
+  <div class="module-header">
+    <button class="back-btn" onclick="openModule('home')">←</button>
+    <h2>Kasa Export</h2>
+    <span id="kasaStaffBadge" class="staff-badge"></span>
+  </div>
+  <div style="padding:16px">
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+      <label style="font-size:14px">Fiyat: <input type="text" id="kasaPrice" value="1.50" style="width:60px;padding:6px;border:1px solid #ddd;border-radius:6px"></label>
+      <label style="font-size:14px">Grup: <input type="text" id="kasaGroup" value="Jewellery" style="width:100px;padding:6px;border:1px solid #ddd;border-radius:6px"></label>
+      <button onclick="fetchKasaExport()" style="padding:8px 16px;background:#2196F3;color:#fff;border:none;border-radius:6px;font-weight:600">Getir</button>
+      <button onclick="copyKasaExport()" style="padding:8px 16px;background:#4CAF50;color:#fff;border:none;border-radius:6px;font-weight:600">Kopyala</button>
+    </div>
+    <div id="kasaCount" style="margin-bottom:8px;font-size:13px;color:#666"></div>
+    <textarea id="kasaOutput" readonly style="width:100%;height:400px;font-family:monospace;font-size:13px;padding:8px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;box-sizing:border-box"></textarea>
+  </div>
+</div>
+
 <!-- PATTERN CATALOG MODULE -->
 <div id="patternCatalog" class="screen">
   <div class="header">
@@ -1036,6 +1058,9 @@ function openModule(id) {
     document.getElementById('taskManagerFilters').style.display = isOwner ? 'flex' : 'none';
     setupTaskCreateForm(isOwner);
     loadTasks();
+  }
+  if (id === 'kasaExport') {
+    document.getElementById('kasaStaffBadge').textContent = 'Logged in as: ' + currentStaff;
   }
   if (id === 'patternCatalog') {
     document.getElementById('pcStaffBadge').textContent = 'Logged in as: ' + currentStaff;
@@ -4000,6 +4025,35 @@ function submitSwapComplete() {
       showToast('Baglanti hatasi');
       updateSwapSubmitBtn();
     });
+}
+
+// ===== KASA EXPORT =====
+function fetchKasaExport() {
+  var price = document.getElementById('kasaPrice').value || '1.50';
+  var group = document.getElementById('kasaGroup').value || 'Jewellery';
+  document.getElementById('kasaOutput').value = 'Yukleniyor...';
+  document.getElementById('kasaCount').textContent = '';
+
+  fetch(SCRIPT_URL + '?action=kasa_export&price=' + encodeURIComponent(price) + '&group=' + encodeURIComponent(group))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        document.getElementById('kasaOutput').value = data.output;
+        document.getElementById('kasaCount').textContent = data.count + ' urun listelendi';
+      } else {
+        document.getElementById('kasaOutput').value = 'Hata: ' + (data.error || 'Bilinmeyen hata');
+      }
+    })
+    .catch(function(err) {
+      document.getElementById('kasaOutput').value = 'Baglanti hatasi: ' + err.message;
+    });
+}
+
+function copyKasaExport() {
+  var textarea = document.getElementById('kasaOutput');
+  textarea.select();
+  document.execCommand('copy');
+  showToast('Panoya kopyalandi!');
 }
 </script>
 </body>
