@@ -3087,6 +3087,7 @@ function getModelKey(category, fixedBeads) {
 function findMatchingModels(category, fixedBeads) {
   if (!category || fixedBeads.length === 0) return [];
   var inputKey = getModelKey(category, fixedBeads);
+  console.log('findMatchingModels inputKey:', inputKey, 'patterns:', allPatterns.length);
   var seen = {};
   var matches = [];
   for (var i = 0; i < allPatterns.length; i++) {
@@ -3238,6 +3239,12 @@ function closeMatchModal() {
 
 function goToPhase2(modelDef) {
   currentModelDef = modelDef;
+  console.log('goToPhase2 modelDef:', JSON.stringify({
+    skuPrefix: modelDef.skuPrefix,
+    fixedBeads: modelDef.fixedBeads,
+    varSlot: modelDef.varSlot,
+    reuseModelId: modelDef.reuseModelId
+  }));
 
   document.getElementById('pcPhase1').style.display = 'none';
   document.getElementById('pcPhase2').style.display = 'block';
@@ -4130,8 +4137,10 @@ function addVariantFromBrowse(modelId) {
   if (!source) { showToast('Model bulunamadi'); return; }
 
   var beads = source.beads || [];
+  console.log('addVariantFromBrowse beads:', JSON.stringify(beads));
   var fixedBeads = beads.filter(function(b) { return b.fixed === true; });
   var varBead = beads.find(function(b) { return b.fixed === false; });
+  console.log('fixedBeads:', JSON.stringify(fixedBeads), 'varBead:', JSON.stringify(varBead));
 
   var varSlot = null;
   if (varBead) {
