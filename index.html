@@ -1159,6 +1159,17 @@ function openModule(id) {
     loadPendingSwaps();
   }
   if (id === 'stockOrders') {
+    var orderFilter = document.getElementById('orderStoreFilter');
+    var isOwner = (currentPin === '99991881');
+    var managerStore = STORE_MANAGERS[currentStaff] || '';
+    // Owner sees all, manager sees only their store
+    if (!isOwner && managerStore) {
+      orderFilter.innerHTML = '<option value="' + managerStore + '">' + managerStore + '</option>';
+      orderFilter.value = managerStore;
+      orderFilter.disabled = true;
+    } else {
+      orderFilter.disabled = false;
+    }
     loadOrderDashboard();
   }
   if (id === 'clockInOut') {
