@@ -312,12 +312,12 @@ textarea{resize:none;height:80px;line-height:1.5}
   </div>
   <div class="card">
     <label>Location</label>
-    <select id="location">
+    <select id="location" onchange="loadStoreSections()">
       <option value="">Select location...</option>
-      <option>Watford</option>
-      <option>Guildford</option>
-      <option>Bracknell</option>
-      <option>Gloucester</option>
+      <option value="WAT">Watford</option>
+      <option value="GUI">Guildford</option>
+      <option value="BRA">Bracknell</option>
+      <option value="GLO">Gloucester</option>
       <option>Warehouse</option>
     </select>
 
