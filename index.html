@@ -1072,6 +1072,7 @@ function checkPin() {
     document.getElementById('homeDate').textContent = days[today.getDay()] + ', ' + today.getDate() + ' ' + months[today.getMonth()] + ' ' + today.getFullYear();
     loadClockStatus();
     loadHomeTasks();
+    loadCatalogConfig();
     document.getElementById('swapTaskCard').style.display = 'flex';
     document.getElementById('stockOrdersCard').style.display = (currentPin === '99991881' || !!STORE_MANAGERS[currentStaff]) ? 'flex' : 'none';
     document.getElementById('staff').value = currentStaff;
@@ -2870,6 +2871,20 @@ var BEAD_COLORS = [
 ];
 
 var CATEGORY_NAMES = {SB:'Stretch Bracelet',LX:'Lux Crystal Bracelet',LC:'Lux Cobra Bracelet',CF:'Cuff Bracelet',AN:'Anklet',NL:'Necklace Lux',NC:'Necklace Crystal',NB:'Necklace Bead',RG:'Ring',ER:'Earring'};
+
+// Load dynamic catalog config from sheet (overrides hardcoded lists)
+function loadCatalogConfig() {
+  fetch(SCRIPT_URL + '?action=catalog_config')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.success) return;
+      if (data.beadTypes && data.beadTypes.length > 0) BEAD_TYPES = data.beadTypes;
+      if (data.charmModels && data.charmModels.length > 0) CHARM_MODELS = data.charmModels;
+      if (data.colors && data.colors.length > 0) BEAD_COLORS = data.colors;
+      if (data.sizes && data.sizes.length > 0) BEAD_SIZES = data.sizes;
+    })
+    .catch(function() {}); // fallback to hardcoded
+}
 
 function switchPcView(view) {
   document.querySelectorAll('.pc-tab').forEach(function(t){t.classList.remove('active')});
