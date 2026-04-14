@@ -1443,12 +1443,10 @@ function loadPendingDnsForStock() {
       dnSelect.innerHTML = '<option value="">Select DN...</option>';
       if (data.success && data.pending) {
         data.pending.forEach(function(dn) {
-          if (dn.from.indexOf('SUP:') === 0) {
-            var opt = document.createElement('option');
-            opt.value = dn.dnId;
-            opt.textContent = dn.dnId + ' (' + dn.from + ' \u2192 ' + dn.to + ', ' + dn.date + ')';
-            dnSelect.appendChild(opt);
-          }
+          var opt = document.createElement('option');
+          opt.value = dn.dnId;
+          opt.textContent = dn.dnId + ' (' + dn.from + ' \u2192 ' + dn.to + ', ' + dn.date + ')';
+          dnSelect.appendChild(opt);
         });
       }
     })
