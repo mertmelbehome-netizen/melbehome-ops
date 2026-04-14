@@ -3072,13 +3072,16 @@ function getStructuralFingerprint(beads) {
 }
 
 function getFixedBeadKey(b) {
-  var key = b.type + ':' + b.size + ':' + b.color;
-  if (b.charmModel) key += ':' + b.charmModel;
+  var type = (b.type || '').trim().toUpperCase();
+  var size = (b.size || '').trim().toLowerCase();
+  var color = (b.color || '').trim().toLowerCase();
+  var key = type + ':' + size + ':' + color;
+  if (b.charmModel) key += ':' + b.charmModel.trim().toLowerCase();
   return key;
 }
 
 function getModelKey(category, fixedBeads) {
-  return category + '|' + fixedBeads.map(getFixedBeadKey).sort().join('|');
+  return (category || '').trim().toUpperCase() + '|' + fixedBeads.map(getFixedBeadKey).sort().join('|');
 }
 
 function findMatchingModels(category, fixedBeads) {
@@ -3089,7 +3092,7 @@ function findMatchingModels(category, fixedBeads) {
   for (var i = 0; i < allPatterns.length; i++) {
     var ap = allPatterns[i];
     if (ap.category !== category || !ap.beads || ap.beads.length === 0) continue;
-    var apFixed = ap.beads.filter(function(b){ return b.fixed !== false; });
+    var apFixed = ap.beads.filter(function(b){ return b.fixed === true; });
     if (apFixed.length === 0) continue;
     var apKey = getModelKey(category, apFixed);
     if (apKey === inputKey && !seen[ap.modelId]) {
@@ -4127,12 +4130,14 @@ function addVariantFromBrowse(modelId) {
   if (!source) { showToast('Model bulunamadi'); return; }
 
   var beads = source.beads || [];
-  var fixedBeads = beads.filter(function(b) { return b.fixed; });
-  var varBead = beads.find(function(b) { return !b.fixed; });
+  var fixedBeads = beads.filter(function(b) { return b.fixed === true; });
+  var varBead = beads.find(function(b) { return b.fixed === false; });
 
-  if (!varBead) { showToast('Bu model tek desen — degisken slot yok'); return; }
-
-  var varSlot = { type: varBead.type, size: varBead.size };
+  var varSlot = null;
+  if (varBead) {
+    varSlot = { type: varBead.type, size: varBead.size };
+  }
+  // No varSlot = flat product, only color changes — still allow variant
 
   // Switch to builder view + Phase 2
   switchPcView('builder');
