@@ -334,6 +334,24 @@ textarea{resize:none;height:80px;line-height:1.5}
       <option>Warehouse</option>
     </select>
 
+    <label>Reason</label>
+    <select id="stockReason" onchange="onStockReasonChange()">
+      <option value="Stocktake">Stocktake</option>
+      <option value="Mal Kabul">Mal Kabul</option>
+    </select>
+
+    <div id="malKabulFields" style="display:none">
+      <label>DN</label>
+      <select id="stockDnSelect" onchange="onStockDnChange()">
+        <option value="">Select DN...</option>
+      </select>
+      <label>DN Line</label>
+      <select id="stockDnLine" onchange="onStockDnLineChange()">
+        <option value="">Select line...</option>
+      </select>
+      <div id="stockDnProgress" style="margin-top:6px;font-size:13px;color:var(--muted)"></div>
+    </div>
+
     <input id="staff" type="hidden" />
 
     <label>Product</label>
@@ -1324,6 +1342,15 @@ function submitStock() {
   var product = document.getElementById('product').value.trim();
   var qty = parseInt(document.getElementById('qty').value) || 0;
   var note = document.getElementById('note').value.trim();
+  var reason = document.getElementById('stockReason').value;
+  if (reason === 'Mal Kabul') {
+    var dnId = document.getElementById('stockDnSelect').value;
+    var dnLine = document.getElementById('stockDnLine').value;
+    if (!dnId) { showToast('Please select a DN'); return; }
+    if (!dnLine) { showToast('Please select a DN line'); return; }
+    var dnRef = 'DN:' + dnId + ' ' + dnLine;
+    note = note ? (dnRef + ' | ' + note) : dnRef;
+  }
 
   if (!location) { showToast('Please select a location'); return; }
   if (!staff) { showToast('Please enter your name'); return; }
@@ -1344,7 +1371,8 @@ function submitStock() {
     date, time,
     store: location,
     staff, product, qty, note,
-    rowPosition: rowPos
+    rowPosition: rowPos,
+    reason: reason
   });
 
   fetch(SCRIPT_URL + '?' + params.toString())
@@ -1381,6 +1409,80 @@ function submitStock() {
       btn.disabled = false;
       btn.textContent = 'Submit';
     });
+}
+
+// ===== MAL KABUL =====
+function onStockReasonChange() {
+  var reason = document.getElementById('stockReason').value;
+  var fields = document.getElementById('malKabulFields');
+  if (reason === 'Mal Kabul') {
+    fields.style.display = 'block';
+    loadPendingDnsForStock();
+  } else {
+    fields.style.display = 'none';
+    document.getElementById('stockDnSelect').innerHTML = '<option value="">Select DN...</option>';
+    document.getElementById('stockDnLine').innerHTML = '<option value="">Select line...</option>';
+    document.getElementById('stockDnProgress').textContent = '';
+  }
+}
+
+function loadPendingDnsForStock() {
+  var store = document.getElementById('location').value;
+  if (!store) { showToast('Select location first'); return; }
+  var dnSelect = document.getElementById('stockDnSelect');
+  dnSelect.innerHTML = '<option value="">Loading...</option>';
+
+  fetch(SCRIPT_URL + '?action=dn_list_pending&store=' + store)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      dnSelect.innerHTML = '<option value="">Select DN...</option>';
+      if (data.success && data.pending) {
+        data.pending.forEach(function(dn) {
+          if (dn.from.indexOf('SUP:') === 0) {
+            var opt = document.createElement('option');
+            opt.value = dn.dnId;
+            opt.textContent = dn.dnId + ' (' + dn.from + ' \u2192 ' + dn.to + ', ' + dn.date + ')';
+            dnSelect.appendChild(opt);
+          }
+        });
+      }
+    })
+    .catch(function() { dnSelect.innerHTML = '<option value="">Error loading DNs</option>'; });
+}
+
+function onStockDnChange() {
+  var dnId = document.getElementById('stockDnSelect').value;
+  var lineSelect = document.getElementById('stockDnLine');
+  lineSelect.innerHTML = '<option value="">Select line...</option>';
+  document.getElementById('stockDnProgress').textContent = '';
+  if (!dnId) return;
+
+  fetch(SCRIPT_URL + '?action=dn_items&dnId=' + encodeURIComponent(dnId))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success && data.items) {
+        data.items.forEach(function(item) {
+          var opt = document.createElement('option');
+          opt.value = 'No' + item.lineNo;
+          opt.setAttribute('data-qty', item.qty);
+          opt.setAttribute('data-product', item.product);
+          opt.textContent = 'No' + item.lineNo + ': ' + item.product + ' x ' + item.qty;
+          lineSelect.appendChild(opt);
+        });
+      }
+    })
+    .catch(function() { lineSelect.innerHTML = '<option value="">Error</option>'; });
+}
+
+function onStockDnLineChange() {
+  var lineSelect = document.getElementById('stockDnLine');
+  var selected = lineSelect.options[lineSelect.selectedIndex];
+  if (selected && selected.value) {
+    document.getElementById('stockDnProgress').textContent =
+      selected.getAttribute('data-product') + ' \u2014 Beklenen: ' + selected.getAttribute('data-qty');
+  } else {
+    document.getElementById('stockDnProgress').textContent = '';
+  }
 }
 
 // --- Shared: load products for faulty/dn ---
