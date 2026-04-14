@@ -657,8 +657,38 @@ textarea{resize:none;height:80px;line-height:1.5}
     <button class="back-btn" onclick="goHome()">←</button>
     <h2>Stock Orders</h2>
   </div>
-  <div id="orderDashContent" style="margin:12px">
+
+  <div style="margin:12px">
+    <select id="orderStoreFilter" onchange="loadOrderDashboard()" style="width:100%;padding:10px;font-size:15px;border-radius:8px;border:1px solid var(--border)">
+      <option value="">All Stores</option>
+      <option value="WAT">Watford</option>
+      <option value="GUI">Guildford</option>
+      <option value="BRA">Bracknell</option>
+      <option value="GLO">Gloucester</option>
+    </select>
+  </div>
+
+  <div class="pc-tabs" style="margin:0 12px">
+    <div class="pc-tab active" onclick="switchOrderTab('summary')">Summary</div>
+    <div class="pc-tab" onclick="switchOrderTab('detailed')">Detailed</div>
+    <div class="pc-tab" onclick="switchOrderTab('basic')">Basic</div>
+    <div class="pc-tab" id="orderTrialTab" style="display:none" onclick="switchOrderTab('trials')">Trials</div>
+  </div>
+
+  <div id="orderSummaryView" class="pc-view active" style="margin:12px">
     <p style="text-align:center;color:var(--muted)">Loading...</p>
+  </div>
+
+  <div id="orderDetailedView" class="pc-view" style="margin:12px">
+    <p style="text-align:center;color:var(--muted)">Select a store to see detailed orders</p>
+  </div>
+
+  <div id="orderBasicView" class="pc-view" style="margin:12px">
+    <p style="text-align:center;color:var(--muted)">Select a store to see basic orders</p>
+  </div>
+
+  <div id="orderTrialsView" class="pc-view" style="margin:12px">
+    <p style="text-align:center;color:var(--muted)">No trial data yet</p>
   </div>
 </div>
 
@@ -3914,16 +3944,35 @@ function addVariantFromBrowse(modelId) {
 // === STOCK COUNT: SECTION + ROW HELPERS ===
 window.storeSections = [];
 
+function switchOrderTab(view) {
+  document.querySelectorAll('#stockOrders .pc-tab').forEach(function(t){t.classList.remove('active')});
+  document.querySelectorAll('#stockOrders .pc-view').forEach(function(v){v.classList.remove('active')});
+  var tabs = document.querySelectorAll('#stockOrders .pc-tab');
+  var tabMap = {summary:0, detailed:1, basic:2, trials:3};
+  if (tabs[tabMap[view]]) tabs[tabMap[view]].classList.add('active');
+  var viewEl = document.getElementById('order' + view.charAt(0).toUpperCase() + view.slice(1) + 'View');
+  if (viewEl) viewEl.classList.add('active');
+}
+
 function loadOrderDashboard() {
-  fetch(SCRIPT_URL + '?action=order_dashboard')
+  var store = document.getElementById('orderStoreFilter').value;
+  var params = 'action=order_dashboard';
+  if (store) params += '&store=' + store;
+
+  // Show trials tab only for Mert
+  document.getElementById('orderTrialTab').style.display = (currentPin === '99991881') ? '' : 'none';
+
+  fetch(SCRIPT_URL + '?' + params)
     .then(function(r) { return r.json(); })
     .then(function(resp) {
-      var el = document.getElementById('orderDashContent');
+      var el = document.getElementById('orderSummaryView');
       if (!resp.success || !resp.data) {
         el.innerHTML = '<div class="card" style="text-align:center;padding:30px"><p style="color:var(--muted)">No order cycle has been run yet</p></div>';
         return;
       }
       var d = resp.data;
+
+      // Summary tab
       var html = '';
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
       html += '<div class="card" style="text-align:center;padding:12px"><div style="font-size:24px;font-weight:700;color:var(--green)">' + d.orders + '</div><div style="font-size:11px;color:var(--muted)">Orders</div></div>';
@@ -3941,9 +3990,74 @@ function loadOrderDashboard() {
       }
       html += '</div>';
       el.innerHTML = html;
+
+      // Detailed tab (Katman 1)
+      var detEl = document.getElementById('orderDetailedView');
+      if (d.detailed && d.detailed.length > 0) {
+        var dhtml = '<div class="card" style="padding:12px"><h3 style="margin-bottom:8px">Pattern-Level Orders</h3>';
+        d.detailed.forEach(function(item) {
+          var color = item.decision === 'urgent' ? 'var(--red)' : item.decision === 'order' ? 'var(--green)' : 'var(--amber)';
+          dhtml += '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">';
+          dhtml += '<div style="flex:1"><strong>' + item.product + '</strong><br><span style="font-size:11px;color:var(--muted)">' + item.section + ' | ' + item.rank + '</span></div>';
+          dhtml += '<div style="text-align:right"><span style="font-weight:700;color:' + color + '">' + item.orderQty + '</span><br><span style="font-size:11px;color:var(--muted)">stock: ' + item.stock + '</span></div>';
+          dhtml += '</div>';
+        });
+        dhtml += '</div>';
+        detEl.innerHTML = dhtml;
+      } else {
+        detEl.innerHTML = '<div class="card" style="text-align:center;padding:20px"><p style="color:var(--muted)">No detailed orders — patterns not yet barcoded</p></div>';
+      }
+
+      // Basic tab (Katman 2)
+      var basEl = document.getElementById('orderBasicView');
+      if (d.basic && d.basic.length > 0) {
+        var bhtml = '<div class="card" style="padding:12px"><h3 style="margin-bottom:8px">Product Group Orders</h3>';
+        d.basic.forEach(function(item) {
+          var flag = item.weeksOfStock < 3 ? ' URGENT' : '';
+          bhtml += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border)">';
+          bhtml += '<div>' + item.product + '<span style="color:var(--red);font-size:11px">' + flag + '</span></div>';
+          bhtml += '<div style="text-align:right;font-weight:700">' + item.orderQty + ' <span style="font-weight:400;font-size:11px;color:var(--muted)">(' + item.weeksOfStock + 'w)</span></div>';
+          bhtml += '</div>';
+        });
+        bhtml += '</div>';
+        basEl.innerHTML = bhtml;
+      } else {
+        basEl.innerHTML = '<div class="card" style="text-align:center;padding:20px"><p style="color:var(--muted)">No basic order data</p></div>';
+      }
+
+      // Trials tab (only Mert)
+      if (currentPin === '99991881' && d.trials && d.trials.length > 0) {
+        var tEl = document.getElementById('orderTrialsView');
+        var thtml = '<div class="card" style="padding:12px"><h3 style="margin-bottom:8px">Trial Results</h3>';
+        d.trials.forEach(function(t) {
+          var badge = t.decision === 'success' ? 'background:var(--green);color:#fff' : t.decision === 'fail' ? 'background:var(--red);color:#fff' : t.decision === 'borderline' ? 'background:var(--amber);color:#fff' : 'background:var(--border)';
+          thtml += '<div style="padding:8px 0;border-bottom:1px solid var(--border)">';
+          thtml += '<div style="display:flex;justify-content:space-between;align-items:center">';
+          thtml += '<strong>' + t.product + '</strong>';
+          thtml += '<span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;' + badge + '">' + t.decision.toUpperCase() + '</span>';
+          thtml += '</div>';
+          thtml += '<div style="font-size:12px;color:var(--muted);margin-top:4px">' + t.reason + '</div>';
+          thtml += '</div>';
+        });
+        thtml += '</div>';
+        tEl.innerHTML = thtml;
+      }
+
+      // Actions tab — create tasks for managers/staff
+      if (d.actions && d.actions.length > 0) {
+        var actHtml = '';
+        d.actions.forEach(function(a) {
+          actHtml += '<div class="card" style="padding:10px;margin-bottom:8px;border-left:3px solid ' + (a.priority === 'high' ? 'var(--red)' : 'var(--amber)') + '">';
+          actHtml += '<strong>' + a.action + '</strong>';
+          actHtml += '<div style="font-size:12px;color:var(--muted)">' + a.product + ' — ' + a.store + '</div>';
+          actHtml += '</div>';
+        });
+        // Append actions to summary
+        el.innerHTML += '<div style="margin-top:12px"><h3 style="margin-bottom:8px">Pending Actions</h3>' + actHtml + '</div>';
+      }
     })
     .catch(function() {
-      document.getElementById('orderDashContent').innerHTML = '<p style="color:var(--red)">Connection error</p>';
+      document.getElementById('orderSummaryView').innerHTML = '<p style="color:var(--red)">Connection error</p>';
     });
 }
 
