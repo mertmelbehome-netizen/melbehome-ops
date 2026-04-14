@@ -4213,7 +4213,7 @@ function shrinkageAction(id, action) {
   fetch(SCRIPT_URL, {
     method: 'POST',
     headers: {'Content-Type': 'text/plain'},
-    body: JSON.stringify({action: 'shrinkage_action', id: id, action: action, approvedBy: currentStaff})
+    body: JSON.stringify({action: 'shrinkage_action', id: id, shrinkageAction: action, approvedBy: currentStaff})
   })
     .then(function(r) { return r.json(); })
     .then(function(data) {
