@@ -337,7 +337,7 @@ textarea{resize:none;height:80px;line-height:1.5}
     <label>Reason</label>
     <select id="stockReason" onchange="onStockReasonChange()">
       <option value="Stocktake">Stocktake</option>
-      <option value="Mal Kabul">Mal Kabul</option>
+      <option value="Goods Receipt">Goods Receipt</option>
     </select>
 
     <div id="malKabulFields" style="display:none">
@@ -1343,7 +1343,7 @@ function submitStock() {
   var qty = parseInt(document.getElementById('qty').value) || 0;
   var note = document.getElementById('note').value.trim();
   var reason = document.getElementById('stockReason').value;
-  if (reason === 'Mal Kabul') {
+  if (reason === 'Goods Receipt') {
     var dnId = document.getElementById('stockDnSelect').value;
     var dnLine = document.getElementById('stockDnLine').value;
     if (!dnId) { showToast('Please select a DN'); return; }
@@ -1415,7 +1415,7 @@ function submitStock() {
 function onStockReasonChange() {
   var reason = document.getElementById('stockReason').value;
   var fields = document.getElementById('malKabulFields');
-  if (reason === 'Mal Kabul') {
+  if (reason === 'Goods Receipt') {
     fields.style.display = 'block';
     loadPendingDnsForStock();
   } else {
@@ -1744,7 +1744,7 @@ function loadPendingDNs() {
         var isSupplier = dn.from.indexOf('SUP:') === 0;
         var fromLabel = isSupplier ? dn.from.replace('SUP:', '') : dn.from;
         var statusColor = dn.status === 'draft' ? 'var(--amber)' : 'var(--blue)';
-        var statusLabel = dn.status === 'draft' ? 'Mal Kabul' : 'Transfer';
+        var statusLabel = dn.status === 'draft' ? 'Goods Receipt' : 'Transfer';
         var itemCount = dn.items.length + ' item' + (dn.items.length > 1 ? 's' : '');
         html += '<div class="card" style="border-left-color:' + statusColor + ';cursor:pointer" onclick="openDnAccept(' + i + ')">' +
           '<div style="display:flex;justify-content:space-between;align-items:center">' +
