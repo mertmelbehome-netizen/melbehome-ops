@@ -306,6 +306,15 @@ textarea{resize:none;height:80px;line-height:1.5}
         </div>
         <h3>Stand Swap</h3>
       </div>
+      <div class="module-card-mini" onclick="openModule('stockOrders')" id="stockOrdersCard" style="display:none">
+        <div class="module-icon" style="background:#fef3c7">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
+            <path d="M9 14l2 2 4-4"/>
+          </svg>
+        </div>
+        <h3>Stock Orders</h3>
+      </div>
     </div>
   </div>
 </div>
@@ -639,6 +648,17 @@ textarea{resize:none;height:80px;line-height:1.5}
 
       <button class="submit-btn" style="margin-top:12px" onclick="submitCashCount('closing')">Submit Closing Count</button>
     </div>
+  </div>
+</div>
+
+<!-- STOCK ORDERS DASHBOARD -->
+<div id="stockOrders" class="screen">
+  <div class="header">
+    <button class="back-btn" onclick="goHome()">←</button>
+    <h2>Stock Orders</h2>
+  </div>
+  <div id="orderDashContent" style="margin:12px">
+    <p style="text-align:center;color:var(--muted)">Loading...</p>
   </div>
 </div>
 
@@ -987,6 +1007,7 @@ function checkPin() {
     loadClockStatus();
     loadHomeTasks();
     document.getElementById('swapTaskCard').style.display = 'flex';
+    document.getElementById('stockOrdersCard').style.display = (currentPin === '99991881' || !!STORE_MANAGERS[currentStaff]) ? 'flex' : 'none';
     document.getElementById('staff').value = currentStaff;
     document.getElementById('patternCatalogCard').style.display = PATTERN_ALLOWED_PINS.includes(pin) ? 'flex' : 'none';
     document.getElementById('chatFab').style.display = 'flex';
@@ -1070,6 +1091,9 @@ function openModule(id) {
   if (id === 'swapTask') {
     document.getElementById('swapStaffBadge').textContent = 'Logged in as: ' + currentStaff;
     loadPendingSwaps();
+  }
+  if (id === 'stockOrders') {
+    loadOrderDashboard();
   }
   if (id === 'clockInOut') {
     document.getElementById('clockStaffBadge').textContent = 'Logged in as: ' + currentStaff;
@@ -3889,6 +3913,39 @@ function addVariantFromBrowse(modelId) {
 // === SWAP TASK MODULE ===
 // === STOCK COUNT: SECTION + ROW HELPERS ===
 window.storeSections = [];
+
+function loadOrderDashboard() {
+  fetch(SCRIPT_URL + '?action=order_dashboard')
+    .then(function(r) { return r.json(); })
+    .then(function(resp) {
+      var el = document.getElementById('orderDashContent');
+      if (!resp.success || !resp.data) {
+        el.innerHTML = '<div class="card" style="text-align:center;padding:30px"><p style="color:var(--muted)">No order cycle has been run yet</p></div>';
+        return;
+      }
+      var d = resp.data;
+      var html = '';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
+      html += '<div class="card" style="text-align:center;padding:12px"><div style="font-size:24px;font-weight:700;color:var(--green)">' + d.orders + '</div><div style="font-size:11px;color:var(--muted)">Orders</div></div>';
+      html += '<div class="card" style="text-align:center;padding:12px"><div style="font-size:24px;font-weight:700;color:var(--red)">' + d.urgent + '</div><div style="font-size:11px;color:var(--muted)">Urgent</div></div>';
+      html += '<div class="card" style="text-align:center;padding:12px"><div style="font-size:24px;font-weight:700;color:var(--amber)">' + d.slowMover + '</div><div style="font-size:11px;color:var(--muted)">Slow Mover</div></div>';
+      html += '<div class="card" style="text-align:center;padding:12px"><div style="font-size:24px;font-weight:700">' + d.totalQty + '</div><div style="font-size:11px;color:var(--muted)">Total Units</div></div>';
+      html += '</div>';
+      html += '<div class="card" style="padding:12px"><h3 style="margin-bottom:8px">Recent Cycles</h3>';
+      if (d.history && d.history.length > 0) {
+        d.history.forEach(function(h) {
+          html += '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><span>' + h.date + '</span><span>' + h.orderQty + ' units / ' + h.products + ' products</span></div>';
+        });
+      } else {
+        html += '<p style="color:var(--muted)">No history yet</p>';
+      }
+      html += '</div>';
+      el.innerHTML = html;
+    })
+    .catch(function() {
+      document.getElementById('orderDashContent').innerHTML = '<p style="color:var(--red)">Connection error</p>';
+    });
+}
 
 function loadStoreSections() {
   var store = document.getElementById('location').value || clockedInStore || '';
