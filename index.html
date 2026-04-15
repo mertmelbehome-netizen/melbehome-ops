@@ -3403,8 +3403,8 @@ function addSinglePattern() {
     beadCount: fixedBeads.length,
     fingerprint: fingerprint,
     structFingerprint: getStructuralFingerprint(fixedBeads),
-    photo: null,
-    note: '',
+    photo: pcPhotoData || null,
+    note: document.getElementById('pcNote') ? document.getElementById('pcNote').value.trim() : '',
     staff: currentStaff,
     date: now.toLocaleDateString('en-GB'),
     time: now.toTimeString().slice(0,5),
@@ -3412,6 +3412,7 @@ function addSinglePattern() {
     modelId: null
   });
 
+  pcPhotoData = null;
   resetPhase1();
   renderPatternBatchList();
   showToast('Tek desen eklendi: ' + CATEGORY_NAMES[cat]);
