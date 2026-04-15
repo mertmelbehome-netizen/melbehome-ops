@@ -1161,7 +1161,10 @@ function openModule(id) {
   }
   if (id === 'patternCatalog') {
     document.getElementById('pcStaffBadge').textContent = 'Logged in as: ' + currentStaff;
-    if (pcFixedBeadCount === 0) addFixedBeadRow();
+    // Reload catalog config and rebuild bead rows with fresh data
+    loadCatalogConfig(function() {
+      if (pcFixedBeadCount === 0) addFixedBeadRow();
+    });
     if (allPatterns.length === 0) loadPatternList();
   }
   if (id === 'swapTask') {
@@ -2883,17 +2886,18 @@ var BEAD_COLORS = [
 var CATEGORY_NAMES = {SB:'Stretch Bracelet',SG:'String Bracelet',LX:'Lux Bracelet',LC:'Lux Cobra Bracelet',CF:'Cuff Bracelet',AN:'Anklet',NL:'Necklace Lux',NC:'Necklace Crystal',NB:'Necklace Bead',RG:'Ring',ER:'Earring'};
 
 // Load dynamic catalog config from sheet (overrides hardcoded lists)
-function loadCatalogConfig() {
+function loadCatalogConfig(callback) {
   fetch(SCRIPT_URL + '?action=catalog_config')
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (!data.success) return;
+      if (!data.success) { if (callback) callback(); return; }
       if (data.beadTypes && data.beadTypes.length > 0) BEAD_TYPES = data.beadTypes;
       if (data.charmModels && data.charmModels.length > 0) CHARM_MODELS = data.charmModels;
       if (data.colors && data.colors.length > 0) BEAD_COLORS = data.colors;
       if (data.sizes && data.sizes.length > 0) BEAD_SIZES = data.sizes;
+      if (callback) callback();
     })
-    .catch(function() {}); // fallback to hardcoded
+    .catch(function() { if (callback) callback(); });
 }
 
 function switchPcView(view) {
