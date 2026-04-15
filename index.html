@@ -921,6 +921,7 @@ textarea{resize:none;height:80px;line-height:1.5}
               <option value="SR">Spacer Rondel</option>
               <option value="SM">Spacer Metal</option>
               <option value="ZN">Zincir</option>
+              <option value="ZF">Zincir Figure</option>
               <option value="ANY">Serbest (her sey olabilir)</option>
             </select>
             <select id="varSlotSize" onchange="updateSKUPreview()">
@@ -2856,13 +2857,17 @@ var BEAD_TYPES = [
   {code:'CH',label:'Charm'},{code:'IN',label:'Inci'},{code:'PU',label:'Puskul'},
   {code:'ST',label:'Spacer Top'},{code:'SK',label:'Spacer Kup'},{code:'SD',label:'Spacer Disk'},
   {code:'SR',label:'Spacer Rondel'},{code:'SM',label:'Spacer Metal'},
-  {code:'ZN',label:'Zincir'}
+  {code:'ZN',label:'Zincir'},
+  {code:'ZF',label:'Zincir Figure'}
 ];
 var CHARM_MODELS = [
   'Nazar','Kalp','Yildiz','Kelebek','Ay','Gunes','Hayat Agaci',
   'Fil','Hamsa','Deniz Kabugu','Deniz Yildizi','Yaprak','Cicek','Tas','Anahtar',
   'Sonsuzluk','Pati','Mevlana','Balk','Kutu','Papatya','Lotus',
   'Gokkusagi','Mix Deniz Urunleri','Diger'
+];
+var ZINCIRFIGURE_MODELS = [
+  'Mix','Kalp','Dikdortgen','Kare','Kelebek','Papatya','Elips','Yuvarlak','Damba','Yildiz'
 ];
 var BEAD_SIZES = ['2mm','3mm','4mm','4x4','5mm','5.5mm','6mm','6x6','8mm','8x8','10mm','12mm'];
 var BEAD_COLORS = [
@@ -2898,6 +2903,7 @@ function loadCatalogConfig(callback) {
       if (data.charmModels && data.charmModels.length > 0) CHARM_MODELS = data.charmModels;
       if (data.colors && data.colors.length > 0) BEAD_COLORS = data.colors;
       if (data.sizes && data.sizes.length > 0) BEAD_SIZES = data.sizes;
+      if (data.zincirFigureModels && data.zincirFigureModels.length > 0) ZINCIRFIGURE_MODELS = data.zincirFigureModels;
       if (callback) callback();
     })
     .catch(function() { if (callback) callback(); });
@@ -2945,6 +2951,12 @@ function onBeadTypeChange(sel) {
   var row = sel.closest('.bead-row');
   var charmSel = row.querySelector('.charm-select');
   if (sel.value === 'CH') {
+    var opts = '<option value="">Charm modeli...</option>' + CHARM_MODELS.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
+    charmSel.innerHTML = opts;
+    charmSel.style.display = 'block';
+  } else if (sel.value === 'ZF') {
+    var zfOpts = '<option value="">Figure modeli...</option>' + ZINCIRFIGURE_MODELS.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join('');
+    charmSel.innerHTML = zfOpts;
     charmSel.style.display = 'block';
   } else {
     charmSel.style.display = 'none';
@@ -2971,10 +2983,10 @@ function getFixedBeads() {
     var size = selects[1].value;
     var color = selects[2].value;
     var charmModel = selects[3] ? selects[3].value : '';
-    var noSizeColor = (type === 'CH' || type === 'IN' || type === 'PU');
+    var noSizeColor = (type === 'CH' || type === 'IN' || type === 'PU' || type === 'ZF');
     if (type && (noSizeColor || (size && color))) {
       var bead = {type:type, size:size || 'NS', color:color || 'NA', fixed:true};
-      if (type === 'CH' && charmModel) bead.charmModel = charmModel;
+      if ((type === 'CH' || type === 'ZF') && charmModel) bead.charmModel = charmModel;
       beads.push(bead);
     }
   }
@@ -3927,7 +3939,7 @@ function getEditedBeads() {
     var size = rows[i].querySelector('.eb-size').value;
     var color = rows[i].querySelector('.eb-color').value;
     var charm = rows[i].querySelector('.eb-charm').value;
-    var noSizeColor = (type === 'CH' || type === 'IN' || type === 'PU');
+    var noSizeColor = (type === 'CH' || type === 'IN' || type === 'PU' || type === 'ZF');
     if (type && (noSizeColor || (size && color))) {
       var bead = { type: type, size: size || 'NS', color: color || 'NA' };
       if (type === 'CH' && charm) bead.charmModel = charm;
