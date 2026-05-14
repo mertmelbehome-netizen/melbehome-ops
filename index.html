@@ -567,14 +567,14 @@ textarea{resize:none;height:80px;line-height:1.5}
       <select id="taskAssignTo">
         <option value="">Select person...</option>
         <option value="ALL">Everyone in store</option>
-        <option>Sachin</option><option>Sabina</option><option>Nuray</option>
+        <option>Sachin</option><option>Nuray</option>
         <option>Mendy</option><option>Emel</option><option>Chloe</option>
-        <option>Pratika</option><option>Akancha</option><option>Kashan</option>
+        <option>Pratika</option><option>Kashan</option>
       </select>
       <label>Store</label>
       <select id="taskStore">
         <option value="">Select store...</option>
-        <option>BRA</option><option>GUI</option><option>GLO</option><option>WAT</option><option>STO</option>
+        <option>BRA</option><option>GUI</option><option>WAT</option><option>STO</option>
       </select>
       <label>Task</label>
       <textarea id="taskDesc" placeholder="What needs to be done..."></textarea>
@@ -606,9 +606,9 @@ textarea{resize:none;height:80px;line-height:1.5}
   <div id="taskManagerFilters" style="display:none;gap:8px;margin-bottom:12px;flex-wrap:wrap">
     <select id="taskFilterPerson" onchange="renderTasks()" style="flex:1;padding:8px;font-size:13px">
       <option value="">All Staff</option>
-      <option>Sachin</option><option>Sabina</option><option>Nuray</option>
+      <option>Sachin</option><option>Nuray</option>
       <option>Mendy</option><option>Emel</option><option>Chloe</option>
-      <option>Pratika</option><option>Akancha</option><option>Kashan</option>
+      <option>Pratika</option><option>Kashan</option>
     </select>
     <select id="taskFilterStore" onchange="renderTasks()" style="flex:1;padding:8px;font-size:13px">
       <option value="">All Stores</option>
@@ -1044,25 +1044,24 @@ var currentStaff = '';
 var currentPin = '';
 var clockedInStore = '';
 var PATTERN_ALLOWED_PINS = ['99991881', '7654', '2762'];
-var STORE_MANAGERS = {'Emel':'WAT','Nuray':'GUI','Sabina':'GLO','Mendy':'BRA'};
+var STORE_MANAGERS = {'Emel':'WAT','Nuray':'GUI','Mendy':'BRA'};
 var STORE_STAFF = {
   'WAT': ['Emel','Sachin','Kashan'],
   'GUI': ['Nuray','Pratika'],
   'BRA': ['Mendy','Chloe','Pratika'],
-  'GLO': ['Sabina','Akancha'],
   'STO': ['Kashan']
 };
 
 // PIN → Name mapping (client-side, simple)
+// Sabina (1003) + Akancha (1008) removed 2026-05-14 — GLO closed 10 May 2026.
+// Chryselle (1001) kept as historical reference, left Mar 2026.
 var PIN_MAP = {
   '1001': 'Chryselle',
   '1002': 'Sachin',
-  '1003': 'Sabina',
   '2762': 'Nuray',
   '1005': 'Mendy',
   '7654': 'Emel',
   '1007': 'Chloe',
-  '1008': 'Akancha',
   '4527': 'Pratika',
   '3918': 'Kashan',
   '99991881': 'Mert'
